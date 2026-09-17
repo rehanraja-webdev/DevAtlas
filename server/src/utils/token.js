@@ -15,7 +15,7 @@ export const generateAccessToken = ({ userId, role, sessionId }) => {
   );
 };
 
-export const generateRefressToken = () => {
+export const generateRefreshToken = () => {
   return crypto.randomBytes(64).toString("hex");
 };
 
