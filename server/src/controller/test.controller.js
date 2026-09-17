@@ -1,4 +1,4 @@
-import { getHelloMessage } from "../services/test.service";
+import { getHelloMessage } from "../services/test.service.js";
 
 export const hello = (req, res) => {
   const message = getHelloMessage();
