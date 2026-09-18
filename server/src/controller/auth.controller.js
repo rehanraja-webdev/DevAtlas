@@ -25,12 +25,18 @@ const Login = async (req, res) => {
 
     const result = await loginUser(email, password, req);
 
-    res.status(200).json({
+    res.cookie("accessToken", result.accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 15 * 60 * 1000,
+    });
+
+    return res.status(200).json({
       success: true,
       message: "Login Successful!",
       data: {
         user: result.user,
-        accessToken: result.accessToken,
       },
     });
   } catch (error) {
