@@ -29,7 +29,8 @@ const Login = async (req, res) => {
       success: true,
       message: "Login Successful!",
       data: {
-        result,
+        user: result.user,
+        accessToken: result.accessToken,
       },
     });
   } catch (error) {
