@@ -1,4 +1,9 @@
-import { loginUser, me, registerUser } from "../services/auth.service.js";
+import {
+  loginUser,
+  me,
+  refToken,
+  registerUser,
+} from "../services/auth.service.js";
 
 const Register = async (req, res) => {
   try {
@@ -57,4 +62,28 @@ const Protected = async (req, res) => {
   });
 };
 
-export default { Register, Login, Protected };
+const refresh = async (req, res) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+    const accessToken = await refToken(refreshToken);
+
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 15 * 60 * 1000,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Access token refreshed",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Unable to refresh session",
+    });
+  }
+};
+
+export default { Register, Login, Protected, refresh };
