@@ -106,3 +106,35 @@ export const createSession = async (user, metadata) => {
     session,
   };
 };
+
+export const refToken = async (refreshToken) => {
+  if (!refreshToken) {
+    return res.status(401).json({
+      success: false,
+      message: "Refresh token required!",
+    });
+  }
+
+  const tokenHash = hashToken(refreshToken);
+
+  const session = await Session.findOne({
+    tokenHash,
+    revokedAt: null,
+    expiresAt: { $gt: new Date() },
+  }).populate("user");
+
+  if (!session) {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid refresh token",
+    });
+  }
+
+  const accessToken = generateAccessToken({
+    userId: session.user._id.toString(),
+    role: session.user.role,
+    sessionId: session._id.toString(),
+  });
+
+  return accessToken;
+};
