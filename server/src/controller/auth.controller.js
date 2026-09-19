@@ -65,12 +65,17 @@ const Logout = async (req, res) => {
   try {
     await logout(req.cookies.refreshToken);
 
-    res.clearCookie("accessToken");
-    res.clearCookie("refreshToken");
+    res.clearCookie("accessToken", {
+      path: "/",
+    });
+
+    res.clearCookie("refreshToken", {
+      path: "/",
+    });
 
     return res.status(200).json({
       success: true,
-      message: "Logout Successful!",
+      message: "Logged out Successfully!",
     });
   } catch (error) {
     res.status(400).json({
@@ -84,8 +89,13 @@ const LogoutAll = async (req, res) => {
   try {
     await logoutAll(req.user.userId);
 
-    res.clearCookie("accessToken");
-    res.clearCookie("refreshToken");
+    res.clearCookie("accessToken", {
+      path: "/",
+    });
+
+    res.clearCookie("refreshToken", {
+      path: "/",
+    });
 
     return res.status(200).json({
       success: true,
@@ -120,7 +130,7 @@ const refresh = async (req, res) => {
       maxAge: 15 * 60 * 1000,
     });
 
-    res.cookie("refreshToken", tokens.newRefreshToken, {
+    res.cookie("refreshToken", tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",

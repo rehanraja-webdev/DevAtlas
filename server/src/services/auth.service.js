@@ -2,7 +2,7 @@ import Session from "../models/Session.js";
 import User from "../models/User.js";
 import Profile from "../models/Profile.js";
 
-import crypto from "crypto";
+import crypto, { hash } from "crypto";
 import {
   hashToken,
   generateAccessToken,
@@ -72,6 +72,7 @@ export const loginUser = async (email, password, req) => {
 export const logout = async (refreshToken) => {
   if (refreshToken) {
     const tokenHash = hashToken(refreshToken);
+    
     await Session.findOneAndUpdate(
       { tokenHash, revokedAt: null },
       { revokedAt: new Date() },
@@ -147,10 +148,39 @@ export const refToken = async (refreshToken, res) => {
     });
   }
 
-  const newRefreshToken = generateRefreshToken();
+  if (session.revokedAt) {
+    await Session.updateMany(
+      {
+        familyId: session.familyId,
+        revokedAt: null,
+      },
+      {
+        revokedAt: new Date(),
+        revokedReason: "security",
+      },
+    );
 
-  session.tokenHash = hashToken(newRefreshToken);
+    throw new Error("Refresh token reuse detected");
+  }
+
+  if (session.expiresAt <= new Date()) {
+    throw new Error("Refresh token expired");
+  }
+
+  const newRefreshToken = generateRefreshToken();
+  const newSession = await Session.create({
+    user: session.user._id,
+    tokenHash: hashToken(newRefreshToken),
+    familyId: session.familyId,
+    expiresAt: session.expiresAt,
+  });
+
+  session.revokedAt = new Date();
+  session.revokedReason = "rotated";
+  session.replacedBy = newSession._id;
   session.lastUsedAt = new Date();
+
+  await session.save();
 
   const accessToken = generateAccessToken({
     userId: session.user._id.toString(),
@@ -158,5 +188,5 @@ export const refToken = async (refreshToken, res) => {
     sessionId: session._id.toString(),
   });
 
-  return { accessToken, newRefreshToken };
+  return { accessToken, refreshToken: newRefreshToken };
 };
