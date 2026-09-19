@@ -8,4 +8,7 @@ router.post("/auth/register", authController.Register);
 
 router.post("/auth/login", authController.Login);
 
+router.post("/auth/logout", authController.Logout);
+
+
 export default router;

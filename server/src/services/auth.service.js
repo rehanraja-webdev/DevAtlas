@@ -69,6 +69,16 @@ export const loginUser = async (email, password, req) => {
   };
 };
 
+export const logout = async (refreshToken) => {
+  if (refreshToken) {
+    const tokenHash = hashToken(refreshToken);
+    await Session.findOneAndUpdate(
+      { tokenHash, revokedAt: null },
+      { revokedAt: new Date() },
+    );
+  }
+};
+
 export const me = async (decoded) => {
   const user = await User.findById(decoded._id);
   return { user };
@@ -107,7 +117,7 @@ export const createSession = async (user, metadata) => {
   };
 };
 
-export const refToken = async (refreshToken) => {
+export const refToken = async (refreshToken, res) => {
   if (!refreshToken) {
     return res.status(401).json({
       success: false,
@@ -141,5 +151,5 @@ export const refToken = async (refreshToken) => {
     sessionId: session._id.toString(),
   });
 
-  return accessToken;
+  return { accessToken, newRefreshToken };
 };

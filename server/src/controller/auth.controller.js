@@ -1,5 +1,6 @@
 import {
   loginUser,
+  logout,
   me,
   refToken,
   registerUser,
@@ -37,6 +38,13 @@ const Login = async (req, res) => {
       maxAge: 15 * 60 * 1000,
     });
 
+    res.cookie("refreshToken", result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
     return res.status(200).json({
       success: true,
       message: "Login Successful!",
@@ -48,6 +56,25 @@ const Login = async (req, res) => {
     res.status(401).json({
       success: false,
       message: error.message,
+    });
+  }
+};
+
+const Logout = async (req, res) => {
+  try {
+    await logout(req.cookies.refreshToken);
+
+    res.clearCookie("accessToken");
+    res.clearCookie("refreshToken");
+
+    return res.status(200).json({
+      success: true,
+      message: "Logout Successful!",
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: "Failed to logout!",
     });
   }
 };
@@ -64,24 +91,23 @@ const Protected = async (req, res) => {
 
 const refresh = async (req, res) => {
   try {
-    const refreshToken = req.cookies.refreshToken;
-    const accessToken = await refToken(refreshToken);
+    const tokens = await refToken(req.cookies.refreshToken, res);
 
-    res.cookie("accessToken", accessToken, {
+    res.cookie("accessToken", tokens.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       maxAge: 15 * 60 * 1000,
     });
 
-    res.cookie("refreshToken", newRefreshToken, {
+    res.cookie("refreshToken", tokens.newRefreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       maxAge: 7 * 24 * 60 * 160 * 1000,
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Access token refreshed",
     });
@@ -93,4 +119,4 @@ const refresh = async (req, res) => {
   }
 };
 
-export default { Register, Login, Protected, refresh };
+export default { Register, Login, Logout, Protected, refresh };
