@@ -74,7 +74,14 @@ const refresh = async (req, res) => {
       maxAge: 15 * 60 * 1000,
     });
 
-    return res.status(200).json({
+    res.cookie("refreshToken", newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 160 * 1000,
+    });
+
+    res.status(200).json({
       success: true,
       message: "Access token refreshed",
     });

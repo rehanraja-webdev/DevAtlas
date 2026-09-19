@@ -130,6 +130,11 @@ export const refToken = async (refreshToken) => {
     });
   }
 
+  const newRefreshToken = generateRefreshToken();
+
+  session.tokenHash = hashToken(newRefreshToken);
+  session.lastUsedAt = new Date();
+
   const accessToken = generateAccessToken({
     userId: session.user._id.toString(),
     role: session.user.role,
