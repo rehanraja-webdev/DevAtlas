@@ -31,6 +31,18 @@ const sessionSchema = new mongoose.Schema(
       default: null,
     },
 
+    revokedReason: {
+      type: String,
+      enum: ["rotated", "logout", "security"],
+      default: null,
+    },
+
+    replacedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Session",
+      default: null,
+    },
+
     lastUsedAt: {
       type: Date,
       default: null,
