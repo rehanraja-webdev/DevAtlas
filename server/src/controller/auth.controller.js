@@ -1,6 +1,7 @@
 import {
   loginUser,
   logout,
+  logoutAll,
   me,
   refToken,
   registerUser,
@@ -79,6 +80,25 @@ const Logout = async (req, res) => {
   }
 };
 
+const LogoutAll = async (req, res) => {
+  try {
+    await logoutAll(req.user.userId);
+
+    res.clearCookie("accessToken");
+    res.clearCookie("refreshToken");
+
+    return res.status(200).json({
+      success: true,
+      message: "Logged out from all devices",
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: "Failed to logout all",
+    });
+  }
+};
+
 const Protected = async (req, res) => {
   const user = await me(req.user);
 
@@ -119,4 +139,4 @@ const refresh = async (req, res) => {
   }
 };
 
-export default { Register, Login, Logout, Protected, refresh };
+export default { Register, Login, Logout, LogoutAll, Protected, refresh };

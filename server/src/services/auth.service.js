@@ -79,6 +79,13 @@ export const logout = async (refreshToken) => {
   }
 };
 
+export const logoutAll = async (userId) => {
+  await Session.updateMany(
+    { user: userId, revokedAt: null },
+    { revokedAt: new Date() },
+  );
+};
+
 export const me = async (decoded) => {
   const user = await User.findById(decoded._id);
   return { user };
