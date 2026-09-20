@@ -109,14 +109,21 @@ const LogoutAll = async (req, res) => {
   }
 };
 
-const Protected = async (req, res) => {
-  const user = await me(req.user);
+const getMe = async (req, res) => {
+  try {
+    const user = await me(req.user.userId);
 
-  return res.status(200).json({
-    success: true,
-    message: "User data fetched!",
-    data: { user },
-  });
+    return res.status(200).json({
+      success: true,
+      message: "User data fetched!",
+      data: { user },
+    });
+  } catch (error) {
+    return res.status(404).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };
 
 const refresh = async (req, res) => {
@@ -149,4 +156,4 @@ const refresh = async (req, res) => {
   }
 };
 
-export default { Register, Login, Logout, LogoutAll, Protected, refresh };
+export default { Register, Login, Logout, LogoutAll, getMe, refresh };

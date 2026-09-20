@@ -72,7 +72,7 @@ export const loginUser = async (email, password, req) => {
 export const logout = async (refreshToken) => {
   if (refreshToken) {
     const tokenHash = hashToken(refreshToken);
-    
+
     await Session.findOneAndUpdate(
       { tokenHash, revokedAt: null },
       { revokedAt: new Date() },
@@ -87,9 +87,19 @@ export const logoutAll = async (userId) => {
   );
 };
 
-export const me = async (decoded) => {
-  const user = await User.findById(decoded._id);
-  return { user };
+export const me = async (userId) => {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  return {
+    id: user._id,
+    fullname: user.fullname,
+    email: user.email,
+    role: user.role,
+  };
 };
 
 export const createSession = async (user, metadata) => {
