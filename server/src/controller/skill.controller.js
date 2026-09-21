@@ -1,4 +1,4 @@
-import { createUserSkill } from "../services/skill.service";
+import { createUserSkill } from "../services/skill.service.js";
 
 export const createSkill = async (req, res) => {
   try {

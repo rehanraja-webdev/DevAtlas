@@ -21,7 +21,7 @@ app.use(cookieParser());
 
 app.use("/api/v1", authRoutes);
 app.use("/api/v1/profile", profileRoutes);
-app.use("/api/vi/skills", skillRoutes);
+app.use("/api/v1/skills", skillRoutes);
 
 app.use("/api/v1/test", testRoutes);
 app.get("/api/v1/health", (req, res) => {
