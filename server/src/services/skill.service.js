@@ -23,3 +23,11 @@ export const createUserSkill = async (
 
   return skill;
 };
+
+export const getUserSkills = async (userId) => {
+  const skills = await Skill.find({
+    user: userId,
+  }).sort({ createdAt: -1 });
+
+  return skills;
+};
