@@ -36,3 +36,22 @@ export const getSkills = async (req, res) => {
     });
   }
 };
+
+export const updateSkill = (req, res) => {
+  try {
+    const skill = getUserSkills(req.user.userId, req.params.id, req.body);
+
+    return res.status(200).json({
+      success: true,
+      message: "Skill updated successfully",
+      data: {
+        skill,
+      },
+    });
+  } catch (error) {
+    return res.status(404).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
