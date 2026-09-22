@@ -1,4 +1,9 @@
-import { createUserSkill, getUserSkills } from "../services/skill.service.js";
+import {
+  createUserSkill,
+  deleteUserSkill,
+  getUserSkills,
+  updateUserSkill,
+} from "../services/skill.service.js";
 
 export const createSkill = async (req, res) => {
   try {
@@ -39,7 +44,7 @@ export const getSkills = async (req, res) => {
 
 export const updateSkill = (req, res) => {
   try {
-    const skill = getUserSkills(req.user.userId, req.params.id, req.body);
+    const skill = updateUserSkill(req.user.userId, req.params.id, req.body);
 
     return res.status(200).json({
       success: true,
@@ -47,6 +52,21 @@ export const updateSkill = (req, res) => {
       data: {
         skill,
       },
+    });
+  } catch (error) {
+    return res.status(404).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const deleteSkill = async (req, res) => {
+  try {
+    await deleteUserSkill(req.user.userId, req.params.id);
+    return res.status(200).json({
+      success: false,
+      message: "Skill deleted!",
     });
   } catch (error) {
     return res.status(404).json({
