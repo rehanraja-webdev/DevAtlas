@@ -62,3 +62,16 @@ export const updateUserSkill = async (userId, skillId, data) => {
   }
   return skill;
 };
+
+export const deleteUserSkill = async (userId, skillId) => {
+  const skill = await Skill.findOneAndDelete({
+    _id: skillId,
+    user: userId,
+  });
+
+  if (!skill) {
+    throw new Error("No skill found!");
+  }
+
+  return skill;
+};
