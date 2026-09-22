@@ -31,3 +31,34 @@ export const getUserSkills = async (userId) => {
 
   return skills;
 };
+
+export const updateUserSkill = async (userId, skillId, data) => {
+  const allowedFields = ["name", "category", "level", "proficiency"];
+
+  const updates = {};
+
+  for (const field of allowedFields) {
+    if (data[field] !== undefined) {
+      updates[field] = data[field];
+    }
+  }
+
+  const skill = await Skill.findOneAndUpdate(
+    {
+      _id: skillId,
+      user: userId,
+    },
+    {
+      $set: updates,
+    },
+    {
+      new: true,
+      runValidators: true,
+    },
+  );
+
+  if (!skill) {
+    throw new Error("Skill not found!");
+  }
+  return skill;
+};
