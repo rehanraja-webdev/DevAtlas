@@ -57,7 +57,9 @@ export const updateDSAProgress = async (req, res) => {
 
 export const getDSAProgress = async (req, res) => {
   try {
-    const progress = await getMyDSAProgress(req.user.userId);
+    const { status } = req.query;
+
+    const progress = await getMyDSAProgress(req.user.userId, status);
 
     return res.status(200).json({
       success: true,
