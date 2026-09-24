@@ -38,3 +38,13 @@ export const updateUserDSAProgress = async (userId, problemId, status) => {
 
   return progress;
 };
+
+export const getMyDSAProgress = async (userId) => {
+  const progress = await DSAProgress.find({
+    user: userId,
+  })
+    .populate("problem", "title plateform difficulty topics url")
+    .sort({ updatedAt: -1 });
+
+  return progress;
+};
