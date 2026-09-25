@@ -59,6 +59,20 @@ export const getDSAStats = async (userId) => {
         user: new mongoose.Types.ObjectId(userId),
       },
     },
+
+    {
+      $lookup: {
+        from: "dsaproblems",
+        localField: "problem",
+        foreignField: "_id",
+        as: "problemData",
+      },
+    },
+
+    {
+      $unwind: "$problemData",
+    },
+
     {
       $group: {
         _id: null,
@@ -66,6 +80,7 @@ export const getDSAStats = async (userId) => {
           $sum: 1,
         },
       },
+
       solved: {
         $sum: {
           $cond: [{ $eq: ["$status", "solved"] }, 1, 0],
@@ -75,6 +90,24 @@ export const getDSAStats = async (userId) => {
       attempted: {
         $sum: {
           $cond: [{ $eq: ["$status", "attempted"] }, 1, 0],
+        },
+      },
+
+      easy: {
+        $sum: {
+          $cond: [{ $eq: ["$problemData.difficulty", "easy"] }, 1, 0],
+        },
+      },
+
+      medium: {
+        $sum: {
+          $cond: [{ $eq: ["$problemData.difficulty", "medium"] }, 1, 0],
+        },
+      },
+
+      hard: {
+        $sum: {
+          $cond: [{ $eq: ["$problemData.difficutly", "hard"] }, 1, 0],
         },
       },
     },
