@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 
 import connectDB from "./db.js";
 import DSAProblem from "../models/DSAProblem.js";
-import { dsaProblems } from "../data/dsaProblems";
+import { dsaProblems } from "../data/dsaProblems.js"; 
 
 dotenv.config();
 
