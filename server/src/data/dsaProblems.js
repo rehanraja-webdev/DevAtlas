@@ -1,0 +1,42 @@
+export const dsaProblems = [
+  {
+    title: "Two Sum",
+    platform: "leetcode",
+    externalId: "1",
+    url: "https://leetcode.com/problems/two-sum/",
+    difficulty: "easy",
+    topics: ["array", "hashmap"],
+  },
+  {
+    title: "Valid Anagram",
+    platform: "leetcode",
+    externalId: "242",
+    url: "https://leetcode.com/problems/valid-anagram/",
+    difficulty: "easy",
+    topics: ["string", "hashmap"],
+  },
+  {
+    title: "3Sum",
+    platform: "leetcode",
+    externalId: "15",
+    url: "https://leetcode.com/problems/3sum/",
+    difficulty: "medium",
+    topics: ["array", "two-pointer"],
+  },
+  {
+    title: "Binary Search",
+    platform: "leetcode",
+    externalId: "704",
+    url: "https://leetcode.com/problems/binary-search/",
+    difficulty: "easy",
+    topics: ["array", "binary-search"],
+  },
+  {
+    title: "Longest Substring Without Repeating Characters",
+    platform: "leetcode",
+    externalId: "3",
+    url: "https://leetcode.com/problems/longest-substring-without-repeating-characters/",
+    difficulty: "medium",
+    topics: ["string", "sliding-window"],
+  },
+];
