@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import DSAProblem from "../models/DSAProblem.js";
 import DSAProgress from "../models/DSAProgress.js";
 
@@ -49,4 +50,41 @@ export const getMyDSAProgress = async (userId, status) => {
   return DSAProgress.find(query)
     .populate("problem", "title plateform difficulty topics url")
     .sort({ updatedAt: -1 });
+};
+
+export const getDSAStats = async (userId) => {
+  const result = await DSAProgress.aggregate([
+    {
+      $match: {
+        user: new mongoose.Types.ObjectId(userId),
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        total: {
+          $sum: 1,
+        },
+      },
+      solved: {
+        $sum: {
+          $cond: [{ $eq: ["$status", "solved"] }, 1, 0],
+        },
+      },
+
+      attempted: {
+        $sum: {
+          $cond: [{ $eq: ["$status", "attempted"] }, 1, 0],
+        },
+      },
+    },
+  ]);
+
+  return (
+    result[0] || {
+      total: 0,
+      solved: 0,
+      attempted: 0,
+    }
+  );
 };
