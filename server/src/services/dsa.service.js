@@ -52,7 +52,7 @@ export const getMyDSAProgress = async (userId, status) => {
     .sort({ updatedAt: -1 });
 };
 
-export const getDSAStats = async (userId) => {
+export const fetchDSAStats = async (userId) => {
   const result = await DSAProgress.aggregate([
     {
       $match: {
@@ -113,11 +113,17 @@ export const getDSAStats = async (userId) => {
     },
   ]);
 
-  return (
-    result[0] || {
-      total: 0,
-      solved: 0,
-      attempted: 0,
-    }
-  );
+  const stats = result[0] || {
+    total: 0,
+    solved: 0,
+    attempted: 0,
+    easy: 0,
+    medium: 0,
+    hard: 0,
+  };
+
+  stats.solvedRate =
+    stats.total === 0 ? 0 : Math.round((stats.solved / stats.total) * 100);
+
+  return stats;
 };

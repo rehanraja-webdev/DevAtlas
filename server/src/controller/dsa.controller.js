@@ -1,4 +1,5 @@
 import {
+  fetchDSAStats,
   getAllProblems,
   getMyDSAProgress,
   updateUserDSAProgress,
@@ -66,6 +67,25 @@ export const getDSAProgress = async (req, res) => {
       message: "DSA progress fetched!",
       data: {
         progress,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getDSAStats = async (req, res) => {
+  try {
+    const stats = fetchDSAStats(req.user.userId);
+
+    return res.status(200).json({
+      success: true,
+      message: "DSA stats fetched",
+      data: {
+        stats,
       },
     });
   } catch (error) {
