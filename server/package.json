@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "seed:problems": "node src/config/seedProblems.js"
+    "seed:problems": "node src/config/seedProblems.js",
+    "seed:roadmaps": "node src/config/seedRoadmaps.js"
   },
   "keywords": [],
   "author": "",
