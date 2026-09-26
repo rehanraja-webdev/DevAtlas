@@ -31,3 +31,15 @@ export const startRoadmapService = async (userId, roadmapId) => {
 
   return userRoadmap;
 };
+
+export const getMyRoadmapService = async (userId) => {
+  const userRoadmap = await UserRoadmap.findOne({
+    user: userId,
+  }).populate("roadmap", "title careerGoal description items");
+
+  if (!userRoadmap) {
+    throw new Error("No roadmap started");
+  }
+
+  return userRoadmap;
+};
