@@ -6,6 +6,7 @@ import testRoutes from "./routes/test.routes.js";
 import profileRoutes from "./routes/profile.routes.js";
 import skillRoutes from "./routes/skill.routes.js";
 import dsaRoutes from "./routes/dsa.routes.js";
+import roadmapRoutes from "./routes/roadmap.routes.js";
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use("/api/v1", authRoutes);
 app.use("/api/v1/profile", profileRoutes);
 app.use("/api/v1/skills", skillRoutes);
 app.use("/api/v1/dsa", dsaRoutes);
+app.use("/api/v1/roadmaps", roadmapRoutes);
 
 app.use("/api/v1/test", testRoutes);
 app.get("/api/v1/health", (req, res) => {
