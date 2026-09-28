@@ -49,7 +49,7 @@ export const updateRoadmapProgressService = async (
   itemKey,
   progressPercent,
 ) => {
-  const userRoadmap = await Roadmap.findOne({
+  const userRoadmap = await UserRoadmap.findOne({
     user: userId,
   }).populate("roadmap");
 
@@ -64,6 +64,10 @@ export const updateRoadmapProgressService = async (
   if (!progressItem) {
     throw new Error("Roadmap not found");
   }
+
+  const roadmapItem = userRoadmap.roadmap.items.find(
+    (item)=> item.key === itemKey
+  )
 
   const dependenciesCompleted = await roadmapItem.dependencies.every((dependency) => {
     const dependencyProgress = userRoadmap.progress.find(
