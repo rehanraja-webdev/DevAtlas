@@ -18,3 +18,21 @@ export const createProject = async (req, res) => {
     });
   }
 };
+
+export const getMyProjects = async (req, res) => {
+  try {
+    const projects = await getMyProjectsService(req.user.userId);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        projects,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
