@@ -1,6 +1,6 @@
 import express from "express";
-import authMiddleware from "../middleware/auth.middleware";
-import { getMyRoadmap, startRoadmap } from "../controller/roadmap.controller";
+import authMiddleware from "../middleware/auth.middleware.js";
+import { getMyRoadmap, startRoadmap } from "../controller/roadmap.controller.js";
 
 const router = express.Router();
 

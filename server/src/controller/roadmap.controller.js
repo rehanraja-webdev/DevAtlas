@@ -1,7 +1,7 @@
 import {
   getMyRoadmapService,
   startRoadmapService,
-} from "../services/roadmap.service";
+} from "../services/roadmap.service.js";
 
 export const startRoadmap = async (req, res) => {
   try {
