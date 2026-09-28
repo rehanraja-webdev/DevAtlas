@@ -1,6 +1,16 @@
 import Roadmap from "../models/Roadmap.js";
 import UserRoadmap from "../models/UserRoadmap.js";
 
+export const getAllRoadmaps = async () => {
+  const roadmaps = await Roadmap.find().select("title careerGoal description");
+  
+  if (roadmaps.length === 0) {
+    throw new Error("Roadmap list is empty!");
+  }
+
+  return roadmaps;
+};
+
 export const startRoadmapService = async (userId, roadmapId) => {
   const roadmap = await Roadmap.findById(roadmapId);
 
@@ -66,16 +76,18 @@ export const updateRoadmapProgressService = async (
   }
 
   const roadmapItem = userRoadmap.roadmap.items.find(
-    (item)=> item.key === itemKey
-  )
+    (item) => item.key === itemKey,
+  );
 
-  const dependenciesCompleted = await roadmapItem.dependencies.every((dependency) => {
-    const dependencyProgress = userRoadmap.progress.find(
-      (item) => item.itemKey === dependency,
-    );
+  const dependenciesCompleted = await roadmapItem.dependencies.every(
+    (dependency) => {
+      const dependencyProgress = userRoadmap.progress.find(
+        (item) => item.itemKey === dependency,
+      );
 
-    return dependencyProgress?.status === "completed";
-  });
+      return dependencyProgress?.status === "completed";
+    },
+  );
 
   if (!dependenciesCompleted) {
     throw new Error("Complete the required topic first");

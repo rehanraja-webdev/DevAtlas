@@ -1,8 +1,27 @@
 import {
+  getAllRoadmaps,
   getMyRoadmapService,
   startRoadmapService,
   updateRoadmapProgressService,
 } from "../services/roadmap.service.js";
+
+export const getRoadmaps = async (req, res) => {
+  try {
+    const roadmaps = await getAllRoadmaps();
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        roadmaps,
+      },
+    });
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 
 export const startRoadmap = async (req, res) => {
   try {
