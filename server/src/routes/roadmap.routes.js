@@ -11,6 +11,8 @@ const router = express.Router();
 
 router.get("/", authMiddleware, getRoadmaps);
 
+router.get("/:roadmapId", authMiddleware, getRoadmaps);
+
 router.post("/:roadmapId/start", authMiddleware, startRoadmap);
 
 router.get("/my-roadmap", authMiddleware, getMyRoadmap);

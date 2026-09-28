@@ -3,12 +3,24 @@ import UserRoadmap from "../models/UserRoadmap.js";
 
 export const getAllRoadmaps = async () => {
   const roadmaps = await Roadmap.find().select("title careerGoal description");
-  
+
   if (roadmaps.length === 0) {
     throw new Error("Roadmap list is empty!");
   }
 
   return roadmaps;
+};
+
+export const getRoadmapById = async (roadmapId) => {
+  const roadmap = await Roadmap.findOne({ roadmapId }).select(
+    "title careerGoal description",
+  );
+
+  if (!roadmap) {
+    throw new Error("Roadmap not found!");
+  }
+
+  return roadmap;
 };
 
 export const startRoadmapService = async (userId, roadmapId) => {
