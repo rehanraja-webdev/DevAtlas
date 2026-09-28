@@ -76,38 +76,39 @@ export const fetchDSAStats = async (userId) => {
     {
       $group: {
         _id: null,
+        
         total: {
           $sum: 1,
         },
-      },
 
-      solved: {
-        $sum: {
-          $cond: [{ $eq: ["$status", "solved"] }, 1, 0],
+        solved: {
+          $sum: {
+            $cond: [{ $eq: ["$status", "solved"] }, 1, 0],
+          },
         },
-      },
 
-      attempted: {
-        $sum: {
-          $cond: [{ $eq: ["$status", "attempted"] }, 1, 0],
+        attempted: {
+          $sum: {
+            $cond: [{ $eq: ["$status", "attempted"] }, 1, 0],
+          },
         },
-      },
 
-      easy: {
-        $sum: {
-          $cond: [{ $eq: ["$problemData.difficulty", "easy"] }, 1, 0],
+        easy: {
+          $sum: {
+            $cond: [{ $eq: ["$problemData.difficulty", "easy"] }, 1, 0],
+          },
         },
-      },
 
-      medium: {
-        $sum: {
-          $cond: [{ $eq: ["$problemData.difficulty", "medium"] }, 1, 0],
+        medium: {
+          $sum: {
+            $cond: [{ $eq: ["$problemData.difficulty", "medium"] }, 1, 0],
+          },
         },
-      },
 
-      hard: {
-        $sum: {
-          $cond: [{ $eq: ["$problemData.difficutly", "hard"] }, 1, 0],
+        hard: {
+          $sum: {
+            $cond: [{ $eq: ["$problemData.difficutly", "hard"] }, 1, 0],
+          },
         },
       },
     },

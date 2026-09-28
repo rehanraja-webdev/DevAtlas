@@ -79,7 +79,7 @@ export const getDSAProgress = async (req, res) => {
 
 export const getDSAStats = async (req, res) => {
   try {
-    const stats = fetchDSAStats(req.user.userId);
+    const stats = await fetchDSAStats(req.user.userId);
 
     return res.status(200).json({
       success: true,
