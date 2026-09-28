@@ -3,7 +3,7 @@ import DSAProblem from "../models/DSAProblem.js";
 import DSAProgress from "../models/DSAProgress.js";
 
 export const getAllProblems = async () => {
-  const problems = (await DSAProblem.find()).toSorted({ createdAt: -1 });
+  const problems = await DSAProblem.find().sort({ createdAt: -1 });
 
   return problems;
 };

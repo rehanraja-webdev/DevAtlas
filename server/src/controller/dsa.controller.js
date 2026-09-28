@@ -26,7 +26,7 @@ export const getProblems = async (req, res) => {
 
 export const updateDSAProgress = async (req, res) => {
   try {
-    const { status } = req.body();
+    const { status } = req.body;
 
     if (!["attempted", "solved"].includes(status)) {
       return res.status(400).json({
@@ -35,9 +35,9 @@ export const updateDSAProgress = async (req, res) => {
       });
     }
 
-    const progress = updateUserDSAProgress(
+    const progress = await updateUserDSAProgress(
       req.user.userId,
-      req.params.problemsId,
+      req.params.problemId,
       status,
     );
 
