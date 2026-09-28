@@ -1,6 +1,7 @@
 import {
   getMyRoadmapService,
   startRoadmapService,
+  updateRoadmapProgressService,
 } from "../services/roadmap.service.js";
 
 export const startRoadmap = async (req, res) => {
@@ -37,6 +38,30 @@ export const getMyRoadmap = async (req, res) => {
     });
   } catch (error) {
     return res.status(404).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const updateRoadmapProgress = async (req, res) => {
+  try {
+    const { progressPercent } = req.body;
+    const userRoadmap = await updateRoadmapProgressService(
+      req.user.userId,
+      req.params.itemKey,
+      progressPercent,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "User roadmap updated",
+      data: {
+        userRoadmap,
+      },
+    });
+  } catch (error) {
+    return res.status(400).json({
       success: false,
       message: error.message,
     });
