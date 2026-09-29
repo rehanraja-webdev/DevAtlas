@@ -1,7 +1,9 @@
 import {
   createProjectService,
   deleteMyProject,
+  getMyProjectsService,
   getProjectById,
+  updateProjectService,
 } from "../services/project.service.js";
 
 export const createProject = async (req, res) => {
@@ -69,6 +71,29 @@ export const deleteProject = async (req, res) => {
     });
   } catch (error) {
     return res.status(403).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const updateProject = async (req, res) => {
+  try {
+    const project = await updateProjectService(
+      req.user.userId,
+      req.params.projectId,
+      req.body,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Project updated successfully!",
+      data: {
+        project,
+      },
+    });
+  } catch (error) {
+    return res.status(404).json({
       success: false,
       message: error.message,
     });

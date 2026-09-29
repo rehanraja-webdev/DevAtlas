@@ -45,3 +45,28 @@ export const deleteMyProject = async (userId, projectId) => {
     throw new Error("Project not found!");
   }
 };
+
+export const updateProjectService = async (userId, projectId, data) => {
+  const project = await Project.findOneAndUpdate(
+    { user: userId, _id: projectId },
+    {
+      description: data.description,
+      status: data.status,
+      technologies: data.technologies,
+      githubUrl: data.githubUrl,
+      liveUrl: data.liveUrl,
+      startDate: data.startDate,
+      endDate: data.endDate,
+    },
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
+
+  if (!project) {
+    throw new Error("Project not found!");
+  }
+
+  return project;
+};

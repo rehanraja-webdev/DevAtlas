@@ -5,6 +5,7 @@ import {
   deleteProject,
   getMyProject,
   getMyProjects,
+  updateProject,
 } from "../controller/project.controller.js";
 
 const router = express.Router();
@@ -17,7 +18,6 @@ router.get("/", authMiddleware, getMyProjects);
 
 router.delete("/:projectId", authMiddleware, deleteProject);
 
-//TODO:
-// PATCH  /api/v1/projects/:id
+router.patch("/:projectId", authMiddleware, updateProject);
 
 export default router;
