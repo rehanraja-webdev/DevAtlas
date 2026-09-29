@@ -16,6 +16,19 @@ export const createProjectService = async (userId, data) => {
   return project;
 };
 
+export const getProjectById = async (userId, projectId) => {
+  const project = await Project.findOne({
+    user: userId,
+    _id: projectId,
+  });
+
+  if (!project) {
+    throw new Error("Project not found!");
+  }
+
+  return project;
+};
+
 export const getMyProjectsService = async (userId) => {
   return Project.find({
     user: userId,
