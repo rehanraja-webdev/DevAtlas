@@ -1,9 +1,9 @@
 import express from "express";
 import authMiddleware from "../middleware/auth.middleware.js";
-import { getActivity } from "../controller/activity.controller.js";
+import { getMyActivity } from "../controller/activity.controller.js";
 
 const router = express.Router();
 
-router.get("/", authMiddleware, getActivity);
+router.get("/", authMiddleware, getMyActivity);
 
 export default router;

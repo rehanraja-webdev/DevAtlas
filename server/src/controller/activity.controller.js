@@ -1,6 +1,6 @@
 import { getActivityService } from "../services/activity.service.js";
 
-export const getActivity = async (req, res) => {
+export const getMyActivity = async (req, res) => {
   try {
     const activities = await getActivityService(req.user.userId);
     const message =
@@ -16,7 +16,7 @@ export const getActivity = async (req, res) => {
       },
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });

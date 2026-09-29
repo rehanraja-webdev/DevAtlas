@@ -16,8 +16,6 @@ export const createActivity = ({
   });
 };
 
-export const getActivityService = async (userId) => {
-  const activities = await Activity.find({ user: userId });
-
-  return activities;
+export const getActivityService = (userId) => {
+  return Activity.find({ user: userId }).sort({ createdAt: -1 }).limit(20);
 };
