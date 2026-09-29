@@ -15,3 +15,9 @@ export const createActivity = ({
     metadata,
   });
 };
+
+export const getActivityService = async (userId) => {
+  const activities = await Activity.find({ user: userId });
+
+  return activities;
+};

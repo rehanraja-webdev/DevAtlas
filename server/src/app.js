@@ -8,6 +8,7 @@ import skillRoutes from "./routes/skill.routes.js";
 import dsaRoutes from "./routes/dsa.routes.js";
 import roadmapRoutes from "./routes/roadmap.routes.js";
 import projectRoutes from "./routes/project.routes.js";
+import activityRoutes from "./routes/activity.routes.js";
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use("/api/v1/skills", skillRoutes);
 app.use("/api/v1/dsa", dsaRoutes);
 app.use("/api/v1/roadmaps", roadmapRoutes);
 app.use("/api/v1/projects", projectRoutes);
+app.use("/api/v1/activities", activityRoutes);
 
 app.use("/api/v1/test", testRoutes);
 app.get("/api/v1/health", (req, res) => {
