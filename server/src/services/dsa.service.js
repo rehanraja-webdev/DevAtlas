@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import DSAProblem from "../models/DSAProblem.js";
 import DSAProgress from "../models/DSAProgress.js";
+import { createActivity } from "./activity.service.js";
 
 export const getAllProblems = async () => {
   const problems = await DSAProblem.find().sort({ createdAt: -1 });
@@ -37,6 +38,16 @@ export const updateUserDSAProgress = async (userId, problemId, status) => {
     },
   );
 
+  await createActivity({
+    userId,
+    type: status === "solved" ? "dsa_solved" : "dsa_attempted",
+    entityType: "dsa",
+    entityId: problemId,
+    metadata: {
+      title: problem.title,
+      difficulty: problem.difficulty,
+    },
+  });
   return progress;
 };
 
@@ -76,7 +87,7 @@ export const fetchDSAStats = async (userId) => {
     {
       $group: {
         _id: null,
-        
+
         total: {
           $sum: 1,
         },
