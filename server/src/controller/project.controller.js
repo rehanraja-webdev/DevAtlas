@@ -1,4 +1,7 @@
-import { createProjectService } from "../services/project.service.js";
+import {
+  createProjectService,
+  deleteMyProject,
+} from "../services/project.service.js";
 
 export const createProject = async (req, res) => {
   try {
@@ -31,6 +34,22 @@ export const getMyProjects = async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const deleteProject = async (req, res) => {
+  try {
+    await deleteMyProject(req.user.userId, req.params.projectId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Project deleted successfully",
+    });
+  } catch (error) {
+    return res.status(403).json({
       success: false,
       message: error.message,
     });

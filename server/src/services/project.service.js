@@ -21,3 +21,14 @@ export const getMyProjectsService = async (userId) => {
     user: userId,
   }).sort({ createdAt: -1 });
 };
+
+export const deleteMyProject = async (userId, projectId) => {
+  const project = await Project.findOneAndDelete({
+    user: userId,
+    _id: projectId,
+  });
+
+  if (!project) {
+    throw new Error("Project not found!");
+  }
+};
