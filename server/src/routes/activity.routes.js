@@ -11,7 +11,5 @@ export default router;
 // 3. Create activity when:
   //  - DSA attempted
   //  - DSA solved
-  //  - Project created
-  //  - Project completed
   //  - Roadmap started
   //  - Skill added/updated

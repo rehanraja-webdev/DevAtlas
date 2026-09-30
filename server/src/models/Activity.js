@@ -18,6 +18,7 @@ const activitySchema = new mongoose.Schema(
         "project_updated",
         "project_completed",
         "roadmap_started",
+        "roadmap_updated",
         "roadmap_completed",
         "skill_added",
         "skill_updated",

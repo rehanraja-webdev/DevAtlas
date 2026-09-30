@@ -1,5 +1,6 @@
 import Roadmap from "../models/Roadmap.js";
 import UserRoadmap from "../models/UserRoadmap.js";
+import { createActivity } from "./activity.service.js";
 
 export const getAllRoadmaps = async () => {
   const roadmaps = await Roadmap.find().select("title careerGoal description");
@@ -49,6 +50,10 @@ export const startRoadmapService = async (userId, roadmapId) => {
     user: userId,
     roadmap: roadmapId,
     progress,
+  });
+
+  await createActivity(userId, "roadmap_started", "roadmap", roadmapId, {
+    title: "User started a new roadmap!",
   });
 
   return userRoadmap;
@@ -128,6 +133,14 @@ export const updateRoadmapProgressService = async (
   );
 
   await userRoadmap.save();
+
+  const type =
+    progressPercent === 100 ? "roadmap_completed" : "roadmap_updated";
+  
+  await createActivity(userId, type, "roadmap", userRoadmap._id, {
+    completionPercentage: progressPercent,
+    lastUpdate: new Date(),
+  });
 
   return userRoadmap;
 };
