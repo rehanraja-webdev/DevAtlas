@@ -1,4 +1,5 @@
 import Skill from "../models/Skill.js";
+import { createActivity } from "./activity.service.js";
 
 export const createUserSkill = async (
   userId,
@@ -19,6 +20,11 @@ export const createUserSkill = async (
     category,
     level,
     proficiency,
+  });
+
+  await createActivity(userId, "skill_added", "skill", skill._id, {
+    title: skill.name,
+    level: skill.level,
   });
 
   return skill;
@@ -60,6 +66,12 @@ export const updateUserSkill = async (userId, skillId, data) => {
   if (!skill) {
     throw new Error("Skill not found!");
   }
+
+  await createActivity(userId, "skill_updated", "skill", skill._id, {
+    title: skill.name,
+    level: skill.level,
+  });
+
   return skill;
 };
 
