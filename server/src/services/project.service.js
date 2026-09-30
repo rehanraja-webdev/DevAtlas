@@ -1,4 +1,5 @@
 import Project from "../models/Project.js";
+import { createActivity } from "./activity.service.js";
 
 export const createProjectService = async (userId, data) => {
   const project = await Project.create({
@@ -11,6 +12,11 @@ export const createProjectService = async (userId, data) => {
     liveUrl: data.liveUrl,
     startDate: data.startDate,
     endDate: data.endDate,
+  });
+
+  await createActivity(userId, "project_created", "project", project._id, {
+    status: data.status,
+    lastUpdate: new Date(),
   });
 
   return project;
@@ -61,12 +67,20 @@ export const updateProjectService = async (userId, projectId, data) => {
     {
       new: true,
       runValidators: true,
-    }
+    },
   );
 
   if (!project) {
     throw new Error("Project not found!");
   }
+
+  const type =
+    data.status === "completed" ? "project_completed" : "project_updated";
+
+  await createActivity(userId, type, "project", project._id, {
+    status: data.status,
+    lastUpdate: new Date(),
+  });
 
   return project;
 };
