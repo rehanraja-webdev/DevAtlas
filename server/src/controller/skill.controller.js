@@ -28,7 +28,7 @@ export const getSkills = async (req, res) => {
   try {
     const skills = await getUserSkills(req.user.userId);
     return res.status(200).json({
-      succe: false,
+      success: true,
       message: "User skills fetched",
       data: {
         skills,

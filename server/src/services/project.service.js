@@ -15,8 +15,8 @@ export const createProjectService = async (userId, data) => {
   });
 
   await createActivity(userId, "project_created", "project", project._id, {
+    title: data.title,
     status: data.status,
-    lastUpdate: new Date(),
   });
 
   return project;
@@ -78,8 +78,8 @@ export const updateProjectService = async (userId, projectId, data) => {
     data.status === "completed" ? "project_completed" : "project_updated";
 
   await createActivity(userId, type, "project", project._id, {
-    status: data.status,
-    lastUpdate: new Date(),
+    title: project.title,
+    status: project.status,
   });
 
   return project;
