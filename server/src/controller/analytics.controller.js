@@ -1,4 +1,7 @@
-import { getActivityAnalyticsService } from "../services/analytics.service.js";
+import {
+  getActivityAnalyticsService,
+  getDeveloperOverviewService,
+} from "../services/analytics.service.js";
 
 export const getActivityAnalytics = async (req, res) => {
   try {
@@ -12,11 +15,29 @@ export const getActivityAnalytics = async (req, res) => {
     }
 
     const activity = await getActivityAnalyticsService(req.user.userId, days);
-
+    console.log(activity);
     return res.status(200).json({
       success: true,
       data: {
         activity,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getDeveloperOverview = async (req, res) => {
+  try {
+    const overview = await getDeveloperOverviewService(req.user.userId);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        overview,
       },
     });
   } catch (error) {

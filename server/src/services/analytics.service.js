@@ -4,7 +4,6 @@ import Activity from "../models/Activity.js";
 export const getActivityAnalyticsService = async (userId, days = 7) => {
   const startDate = new Date();
 
-  //To keep the record 1 day before
   startDate.setDate(startDate.getDate() - (days - 1));
 
   const result = await Activity.aggregate([
@@ -46,4 +45,26 @@ export const getActivityAnalyticsService = async (userId, days = 7) => {
   ]);
 
   return result;
+};
+
+export const getDeveloperOverviewService = async (userId) => {
+  const [dsa, skillCount, projectCount, roadmap] = await Promise.all([
+    getDSAStats(userId),
+    SKill.countDocuments({
+      user: userId,
+    }),
+    Project.countDocuments({
+      user: userId,
+    }),
+    UserRoadmap.findOne({
+      user: userId,
+    }).select("overallProgress"),
+  ]);
+
+  return {
+    dsa,
+    skills: skillCount,
+    projects: projectCount,
+    roadmapProgress: roadmap?.overallProgress ?? 0,
+  };
 };
