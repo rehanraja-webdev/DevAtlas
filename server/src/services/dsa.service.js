@@ -38,16 +38,16 @@ export const updateUserDSAProgress = async (userId, problemId, status) => {
     },
   );
 
-  await createActivity({
+  await createActivity(
     userId,
-    type: status === "solved" ? "dsa_solved" : "dsa_attempted",
-    entityType: "dsa",
-    entityId: problemId,
-    metadata: {
+    status === "solved" ? "dsa_solved" : "dsa_attempted",
+    "dsa",
+    problemId,
+    {
       title: problem.title,
       difficulty: problem.difficulty,
     },
-  });
+  );
   return progress;
 };
 
