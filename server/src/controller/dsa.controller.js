@@ -7,14 +7,32 @@ import {
 
 export const getProblems = async (req, res) => {
   try {
-    const problems = await getAllProblems();
+    const page = Math.max(Number(req.query.page) || 1, 1);
+
+    const limit = Math.min(Math.max(Number(req.query.limit) || 10, 1), 50);
+
+    const { search, difficulty, platform, topic } = req.query;
+
+    if (difficulty && !["easy", "medium", "hard"].includes(difficulty)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid difficulty",
+      });
+    }
+
+    const result = await getAllProblems({
+      page,
+      limit,
+      search,
+      difficulty,
+      platform,
+      topic,
+    });
 
     return res.status(200).json({
       success: true,
       message: "All problems fetched!",
-      data: {
-        problems,
-      },
+      data: result,
     });
   } catch (error) {
     return res.status(500).json({

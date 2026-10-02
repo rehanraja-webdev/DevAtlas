@@ -3,10 +3,54 @@ import DSAProblem from "../models/DSAProblem.js";
 import DSAProgress from "../models/DSAProgress.js";
 import { createActivity } from "./activity.service.js";
 
-export const getAllProblems = async () => {
-  const problems = await DSAProblem.find().sort({ createdAt: -1 });
+export const getAllProblems = async ({
+  page = 1,
+  limit = 20,
+  search,
+  difficulty,
+  platform,
+  topic,
+}) => {
+  const query = {};
 
-  return problems;
+  if (search) {
+    query.title = {
+      $regex: search,
+      $options: "i",
+    };
+  }
+
+  if (difficulty) {
+    query.difficulty = difficulty;
+  }
+
+  if (platform) {
+    query.platform = platform;
+  }
+
+  if (topic) {
+    query.topic = topic;
+  }
+
+  const skip = (page - 1) * limit;
+
+  const [problems, total] = await Promise.all([
+    DSAProblem.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+
+    DSAProblem.countDocuments(query),
+  ]);
+
+  return {
+    problems,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      hasNextPage: page * limit < total,
+      hasPreviousPage: page > 1,
+    },
+  };
 };
 
 export const updateUserDSAProgress = async (userId, problemId, status) => {
