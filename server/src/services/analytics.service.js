@@ -4,6 +4,7 @@ import Project from "../models/Project.js";
 import UserRoadmap from "../models/UserRoadmap.js";
 import Skill from "../models/Skill.js";
 import { fetchDSAStats } from "./dsa.service.js";
+import { getCache } from "../utils/cache.js";
 
 export const getActivityAnalyticsService = async (userId, days = 7) => {
   const startDate = new Date();
@@ -52,6 +53,13 @@ export const getActivityAnalyticsService = async (userId, days = 7) => {
 };
 
 export const getDeveloperOverviewService = async (userId) => {
+  const cacheKey = `analytics:overview:${userId}`;
+  const cached = await getCache(cacheKey);
+
+  if (cached) {
+    return cached;
+  }
+
   const [dsa, skillCount, projectCount, roadmap] = await Promise.all([
     fetchDSAStats(userId),
     Skill.countDocuments({
