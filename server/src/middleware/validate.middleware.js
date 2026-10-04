@@ -16,7 +16,7 @@ export const validate = (schema) => {
 
     req.body = result.data.body;
     req.params = result.data.params;
-    req.query = result.data.query;
+    req.validated = result.data.query;
 
     next();
   };

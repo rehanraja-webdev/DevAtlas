@@ -13,7 +13,7 @@ const Register = async (req, res) => {
 
   return res
     .status(201)
-    .json(new ApiResponse({ user }, "Account created successfully"));
+    .json(new ApiResponse(201, { user }, "Account created successfully"));
 };
 
 const Login = async (req, res) => {
