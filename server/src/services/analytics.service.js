@@ -1,5 +1,9 @@
 import mongoose from "mongoose";
 import Activity from "../models/Activity.js";
+import Project from "../models/Project.js";
+import UserRoadmap from "../models/UserRoadmap.js";
+import Skill from "../models/Skill.js";
+import { fetchDSAStats } from "./dsa.service.js";
 
 export const getActivityAnalyticsService = async (userId, days = 7) => {
   const startDate = new Date();
@@ -49,8 +53,8 @@ export const getActivityAnalyticsService = async (userId, days = 7) => {
 
 export const getDeveloperOverviewService = async (userId) => {
   const [dsa, skillCount, projectCount, roadmap] = await Promise.all([
-    getDSAStats(userId),
-    SKill.countDocuments({
+    fetchDSAStats(userId),
+    Skill.countDocuments({
       user: userId,
     }),
     Project.countDocuments({

@@ -7,9 +7,3 @@ const router = express.Router();
 router.get("/", authMiddleware, getMyActivity);
 
 export default router;
-//TODO:
-// 3. Create activity when:
-  //  - DSA attempted
-  //  - DSA solved
-  //  - Roadmap started
-  //  - Skill added/updated
