@@ -10,6 +10,7 @@ import roadmapRoutes from "./routes/roadmap.routes.js";
 import projectRoutes from "./routes/project.routes.js";
 import activityRoutes from "./routes/activity.routes.js";
 import analyticsRoutes from "./routes/analytics.routes.js";
+import { errorHandler } from "./middleware/error.middleware.js";
 
 const app = express();
 
@@ -32,6 +33,8 @@ app.use("/api/v1/roadmaps", roadmapRoutes);
 app.use("/api/v1/projects", projectRoutes);
 app.use("/api/v1/activities", activityRoutes);
 app.use("/api/v1/analytics", analyticsRoutes);
+
+app.use(errorHandler);
 
 app.use("/api/v1/test", testRoutes);
 app.get("/api/v1/health", (req, res) => {
