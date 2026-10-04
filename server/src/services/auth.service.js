@@ -1,6 +1,7 @@
 import Session from "../models/Session.js";
 import User from "../models/User.js";
 import Profile from "../models/Profile.js";
+import { ApiError } from "../utils/ApiError.js";
 
 import crypto, { hash } from "crypto";
 import {
@@ -10,13 +11,9 @@ import {
 } from "../utils/token.js";
 
 export const registerUser = async ({ fullname, email, password }) => {
-  if (!fullname || !email || !password) {
-    throw new Error("All fields are required!");
-  }
-
   const isExist = await User.findOne({ email });
   if (isExist) {
-    throw new Error("An account with this email already exists");
+    throw new ApiError(409, "An account with this email already exists");
   }
 
   const user = await User.create({
