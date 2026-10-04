@@ -1,11 +1,19 @@
 import express from "express";
 import authMiddleware from "../middleware/auth.middleware.js";
 import authController from "../controller/auth.controller.js";
+import { validate } from "../middleware/validate.middleware.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { registerSchema } from "../validators/auth.validator.js";
+
 const router = express.Router();
 
 router.post("/refresh", authController.refresh);
 
-router.post("/auth/register", authController.Register);
+router.post(
+  "/auth/register",
+  validate(registerSchema),
+  asyncHandler(authController.Register),
+);
 
 router.post("/auth/login", authController.Login);
 
