@@ -1,4 +1,5 @@
 import Project from "../models/Project.js";
+import { deleteCache } from "../utils/cache.js";
 import { createActivity } from "./activity.service.js";
 
 export const createProjectService = async (userId, data) => {
@@ -18,6 +19,8 @@ export const createProjectService = async (userId, data) => {
     title: data.title,
     status: data.status,
   });
+
+  await deleteCache(`analytics:overview:${userId}`);
 
   return project;
 };
