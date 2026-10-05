@@ -1,4 +1,5 @@
 import Project from "../models/Project.js";
+import { ApiError } from "../utils/ApiError.js";
 import { deleteCache } from "../utils/cache.js";
 import { createActivity } from "./activity.service.js";
 
@@ -51,8 +52,10 @@ export const deleteMyProject = async (userId, projectId) => {
   });
 
   if (!project) {
-    throw new Error("Project not found!");
+    throw new ApiError(404, "Project not found!");
   }
+
+  await deleteCache(`analytics:overview:${userId}`);
 };
 
 export const updateProjectService = async (userId, projectId, data) => {
@@ -84,6 +87,8 @@ export const updateProjectService = async (userId, projectId, data) => {
     title: project.title,
     status: project.status,
   });
+
+  await deleteCache(`analytics:overview:${userId}`);
 
   return project;
 };
