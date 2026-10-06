@@ -1,6 +1,7 @@
 import Roadmap from "../models/Roadmap.js";
 import UserRoadmap from "../models/UserRoadmap.js";
 import { createActivity } from "./activity.service.js";
+import { deleteCache } from "../utils/cache.js";
 
 export const getAllRoadmaps = async () => {
   const roadmaps = await Roadmap.find().select("title careerGoal description");
@@ -136,11 +137,13 @@ export const updateRoadmapProgressService = async (
 
   const type =
     progressPercent === 100 ? "roadmap_completed" : "roadmap_updated";
-  
+
   await createActivity(userId, type, "roadmap", userRoadmap._id, {
     completionPercentage: progressPercent,
     lastUpdate: new Date(),
   });
+
+  await deleteCache(`analytics:overview:${userId}`);
 
   return userRoadmap;
 };

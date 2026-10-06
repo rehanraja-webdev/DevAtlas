@@ -1,3 +1,4 @@
+import { deleteCache } from "../utils/cache.js";
 import Skill from "../models/Skill.js";
 import { createActivity } from "./activity.service.js";
 
@@ -26,6 +27,8 @@ export const createUserSkill = async (
     title: skill.name,
     level: skill.level,
   });
+
+  deleteCache(`analytics:overview:${userId}`);
 
   return skill;
 };
@@ -72,6 +75,8 @@ export const updateUserSkill = async (userId, skillId, data) => {
     level: skill.level,
   });
 
+  await deleteCache(`analytics:overview:${userId}`);
+
   return skill;
 };
 
@@ -84,6 +89,8 @@ export const deleteUserSkill = async (userId, skillId) => {
   if (!skill) {
     throw new Error("No skill found!");
   }
+
+  await deleteCache(`analytics:overview:${userId}`);
 
   return skill;
 };

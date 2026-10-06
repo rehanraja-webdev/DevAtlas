@@ -4,7 +4,7 @@ import Project from "../models/Project.js";
 import UserRoadmap from "../models/UserRoadmap.js";
 import Skill from "../models/Skill.js";
 import { fetchDSAStats } from "./dsa.service.js";
-import { getCache } from "../utils/cache.js";
+import { getCache, setCache } from "../utils/cache.js";
 
 export const getActivityAnalyticsService = async (userId, days = 7) => {
   const startDate = new Date();
@@ -73,10 +73,14 @@ export const getDeveloperOverviewService = async (userId) => {
     }).select("overallProgress"),
   ]);
 
-  return {
+  const overview = {
     dsa,
     skills: skillCount,
     projects: projectCount,
     roadmapProgress: roadmap?.overallProgress ?? 0,
   };
+
+  await setCache(cacheKey, overview, 60);
+
+  return overview;
 };

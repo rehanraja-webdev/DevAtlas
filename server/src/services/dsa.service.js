@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import DSAProblem from "../models/DSAProblem.js";
 import DSAProgress from "../models/DSAProgress.js";
 import { createActivity } from "./activity.service.js";
+import { deleteCache } from "../utils/cache.js";
 
 export const getAllProblems = async ({
   page = 1,
@@ -92,6 +93,9 @@ export const updateUserDSAProgress = async (userId, problemId, status) => {
       difficulty: problem.difficulty,
     },
   );
+
+  await deleteCache(`analytics:overview:${userId}`);
+
   return progress;
 };
 
