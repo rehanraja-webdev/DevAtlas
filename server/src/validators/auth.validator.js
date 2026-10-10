@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+//check for fullname, email and password whether they are in correct form and following the rules properly
 export const registerSchema = z.object({
   body: z.object({
     fullname: z
