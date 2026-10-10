@@ -15,6 +15,7 @@ import { errorMiddleware } from "./middleware/error.middleware.js";
 
 const app = express();
 
+//enables communication between two different origin
 app.use(
   cors({
     origin: process.env.CLIENT_URL,
@@ -24,6 +25,8 @@ app.use(
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+//used to handle cookies
 app.use(cookieParser());
 
 app.use("/api/v1", authRoutes);
@@ -36,6 +39,7 @@ app.use("/api/v1/activities", activityRoutes);
 app.use("/api/v1/analytics", analyticsRoutes);
 app.use("/api/v1/report", reportRoutes);
 
+//handle errors
 app.use(errorMiddleware);
 
 app.use("/api/v1/test", testRoutes);
