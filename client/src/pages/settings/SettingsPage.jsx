@@ -15,8 +15,9 @@ import {
 import { GithubIcon, LinkedinIcon } from "../../components/common/BrandIcons.jsx";
 
 export const SettingsPage = () => {
-  const { user, profile, refreshProfile, logout } = useAuthStore();
+  const { user, profile, refreshProfile, logout, checkAuth } = useAuthStore();
 
+  const [fullname, setFullname] = useState("");
   const [bio, setBio] = useState("");
   const [careerGoal, setCareerGoal] = useState("Full Stack Developer");
   const [location, setLocation] = useState("");
@@ -30,15 +31,18 @@ export const SettingsPage = () => {
   const [loggingOutAll, setLoggingOutAll] = useState(false);
 
   useEffect(() => {
+    if (user?.fullname) {
+      setFullname(user.fullname);
+    }
     if (profile) {
       setBio(profile.bio || "");
       setCareerGoal(profile.careerGoal || "Full Stack Developer");
       setLocation(profile.location || "");
       setGithubUrl(profile.githubUrl || "");
-      setLinkedInUrl(profile.linkedInUrl || "");
+      setLinkedInUrl(profile.linkedInUrl || profile.linkedinUrl || "");
       setPortfolioUrl(profile.portfolioUrl || "");
     }
-  }, [profile]);
+  }, [profile, user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -48,6 +52,7 @@ export const SettingsPage = () => {
 
     try {
       await api.patch("/profile", {
+        fullname: fullname || undefined,
         bio,
         careerGoal,
         location,
@@ -56,6 +61,7 @@ export const SettingsPage = () => {
         portfolioUrl: portfolioUrl || null,
       });
       await refreshProfile();
+      await checkAuth();
       setSuccessMsg("Profile settings updated successfully!");
     } catch (err) {
       setErrorMsg(err.response?.data?.message || "Failed to update profile.");
@@ -120,10 +126,25 @@ export const SettingsPage = () => {
 
         {/* Profile Settings Form */}
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1 uppercase tracking-wider flex items-center gap-1.5">
-                <Target className="w-3.5 h-3.5 text-indigo-400" />
+                <User className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Full Name</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={fullname}
+                onChange={(e) => setFullname(e.target.value)}
+                placeholder="Your full name"
+                className="w-full bg-[#141d33] border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1 uppercase tracking-wider flex items-center gap-1.5">
+                <Target className="w-3.5 h-3.5 text-purple-400" />
                 <span>Target Career Goal</span>
               </label>
               <input

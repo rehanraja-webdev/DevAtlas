@@ -11,8 +11,9 @@ const profileSchema = new mongoose.Schema(
 
     bio: {
       type: String,
-      maxlength: 500,
+      maxlength: 1000,
       trim: true,
+      default: "",
     },
 
     avatar: {
@@ -24,32 +25,47 @@ const profileSchema = new mongoose.Schema(
       type: String,
       maxlength: 100,
       trim: true,
+      default: "",
     },
 
     githubUrl: {
       type: String,
       trim: true,
+      default: null,
     },
 
     linkedinUrl: {
       type: String,
       trim: true,
+      default: null,
+    },
+
+    linkedInUrl: {
+      type: String,
+      trim: true,
+      default: null,
     },
 
     portfolioUrl: {
       type: String,
       trim: true,
+      default: null,
     },
 
     careerGoal: {
       type: String,
-      enum: [
-        "frontend-developer",
-        "backend-developer",
-        "fullstack-developer",
-        "software-engineer",
-        "ai-engineer",
-      ],
+      trim: true,
+      default: "Full Stack Developer",
+    },
+
+    resumeText: {
+      type: String,
+      default: "",
+    },
+
+    parsedResume: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
     },
   },
   {

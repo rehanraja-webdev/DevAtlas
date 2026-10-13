@@ -17,6 +17,8 @@ import { RoadmapPage } from "./pages/roadmap/RoadmapPage.jsx";
 import { SkillsPage } from "./pages/skills/SkillsPage.jsx";
 import { ProjectsPage } from "./pages/projects/ProjectsPage.jsx";
 import { MentorPage } from "./pages/mentor/MentorPage.jsx";
+import { InterviewPage } from "./pages/interview/InterviewPage.jsx";
+import { EnglishPracticePage } from "./pages/english/EnglishPracticePage.jsx";
 import { ActivityPage } from "./pages/activity/ActivityPage.jsx";
 import { SettingsPage } from "./pages/settings/SettingsPage.jsx";
 
@@ -120,6 +122,28 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <MentorPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/interview"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <InterviewPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/practice-english"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <EnglishPracticePage />
                 </AppLayout>
               </ProtectedRoute>
             }

@@ -24,6 +24,8 @@ const skillSchema = new mongoose.Schema(
         "devops",
         "language",
         "tools",
+        "core",
+        "fundamentals",
         "other",
       ],
       default: "other",

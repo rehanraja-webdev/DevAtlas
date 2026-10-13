@@ -10,10 +10,10 @@ export const createProjectService = async (userId, data) => {
     description: data.description,
     status: data.status,
     technologies: data.technologies,
-    githubUrl: data.githubUrl,
-    liveUrl: data.liveUrl,
-    startDate: data.startDate,
-    endDate: data.endDate,
+    githubUrl: data.githubUrl || null,
+    liveUrl: data.liveUrl || null,
+    startDate: data.startDate && data.startDate !== "" ? data.startDate : null,
+    endDate: data.endDate && data.endDate !== "" ? data.endDate : null,
   });
 
   await createActivity(userId, "project_created", "project", project._id, {
@@ -73,7 +73,11 @@ export const updateProjectService = async (userId, projectId, data) => {
   const updates = {};
   for (const field of allowedFields) {
     if (data[field] !== undefined) {
-      updates[field] = data[field];
+      if ((field === "startDate" || field === "endDate") && data[field] === "") {
+        updates[field] = null;
+      } else {
+        updates[field] = data[field];
+      }
     }
   }
 

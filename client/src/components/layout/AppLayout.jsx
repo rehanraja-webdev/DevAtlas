@@ -18,10 +18,14 @@ import {
   Target,
   Sparkles,
   ChevronRight,
+  UserCheck,
+  Languages,
 } from "lucide-react";
 
 const navigationItems = [
   { name: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
+  { name: "AI Interview", to: "/interview", icon: UserCheck, badge: "Resume AI" },
+  { name: "Practice English", to: "/practice-english", icon: Languages, badge: "Aaravi" },
   { name: "DSA Practice", to: "/dsa", icon: Binary },
   { name: "Roadmap", to: "/roadmap", icon: Compass },
   { name: "Skills", to: "/skills", icon: Boxes },
