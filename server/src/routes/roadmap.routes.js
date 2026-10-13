@@ -2,6 +2,7 @@ import express from "express";
 import authMiddleware from "../middleware/auth.middleware.js";
 import {
   getMyRoadmap,
+  getRoadmap,
   getRoadmaps,
   startRoadmap,
   updateRoadmapProgress,
@@ -11,7 +12,7 @@ const router = express.Router();
 
 router.get("/", authMiddleware, getRoadmaps);
 
-router.get("/:roadmapId", authMiddleware, getRoadmaps);
+router.get("/:roadmapId", authMiddleware, getRoadmap);
 
 router.post("/:roadmapId/start", authMiddleware, startRoadmap);
 

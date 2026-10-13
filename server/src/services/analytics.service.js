@@ -14,7 +14,7 @@ export const getActivityAnalyticsService = async (userId, days = 7) => {
   const result = await Activity.aggregate([
     {
       $match: {
-        user: new mongoose.Schema.ObjectId(userId),
+        user: new mongoose.Types.ObjectId(userId),
         createdAt: {
           $gte: startDate,
         },

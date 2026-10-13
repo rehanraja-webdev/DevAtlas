@@ -14,9 +14,7 @@ export const getAllRoadmaps = async () => {
 };
 
 export const getRoadmapById = async (roadmapId) => {
-  const roadmap = await Roadmap.findOne({ roadmapId }).select(
-    "title careerGoal description",
-  );
+  const roadmap = await Roadmap.findById(roadmapId);
 
   if (!roadmap) {
     throw new Error("Roadmap not found!");

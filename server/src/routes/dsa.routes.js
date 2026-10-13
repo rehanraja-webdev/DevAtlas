@@ -3,6 +3,7 @@ import authMiddleware from "../middleware/auth.middleware.js";
 import {
   getDSAProgress,
   getDSAStats,
+  getProblemById,
   getProblems,
   updateDSAProgress,
 } from "../controller/dsa.controller.js";
@@ -10,6 +11,8 @@ import {
 const router = express.Router();
 
 router.get("/problems", authMiddleware, getProblems);
+
+router.get("/problems/:problemId", authMiddleware, getProblemById);
 
 router.post("/problems/:problemId/progress", authMiddleware, updateDSAProgress);
 

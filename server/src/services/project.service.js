@@ -59,17 +59,27 @@ export const deleteMyProject = async (userId, projectId) => {
 };
 
 export const updateProjectService = async (userId, projectId, data) => {
+  const allowedFields = [
+    "title",
+    "description",
+    "status",
+    "technologies",
+    "githubUrl",
+    "liveUrl",
+    "startDate",
+    "endDate",
+  ];
+
+  const updates = {};
+  for (const field of allowedFields) {
+    if (data[field] !== undefined) {
+      updates[field] = data[field];
+    }
+  }
+
   const project = await Project.findOneAndUpdate(
     { user: userId, _id: projectId },
-    {
-      description: data.description,
-      status: data.status,
-      technologies: data.technologies,
-      githubUrl: data.githubUrl,
-      liveUrl: data.liveUrl,
-      startDate: data.startDate,
-      endDate: data.endDate,
-    },
+    { $set: updates },
     {
       new: true,
       runValidators: true,

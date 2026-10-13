@@ -99,6 +99,14 @@ export const updateUserDSAProgress = async (userId, problemId, status) => {
   return progress;
 };
 
+export const getSingleProblem = async (problemId) => {
+  const problem = await DSAProblem.findById(problemId);
+  if (!problem) {
+    throw new Error("Problem not found!");
+  }
+  return problem;
+};
+
 export const getMyDSAProgress = async (userId, status) => {
   const query = { user: userId };
 
@@ -107,7 +115,7 @@ export const getMyDSAProgress = async (userId, status) => {
   }
 
   return DSAProgress.find(query)
-    .populate("problem", "title plateform difficulty topics url")
+    .populate("problem", "title platform externalId difficulty topics url")
     .sort({ updatedAt: -1 });
 };
 
@@ -166,7 +174,7 @@ export const fetchDSAStats = async (userId) => {
 
         hard: {
           $sum: {
-            $cond: [{ $eq: ["$problemData.difficutly", "hard"] }, 1, 0],
+            $cond: [{ $eq: ["$problemData.difficulty", "hard"] }, 1, 0],
           },
         },
       },

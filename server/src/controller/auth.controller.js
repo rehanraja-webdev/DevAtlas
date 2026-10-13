@@ -118,7 +118,7 @@ const getMe = async (req, res) => {
 
 const refresh = async (req, res) => {
   try {
-    const tokens = await refToken(req.cookies.refreshToken, res);
+    const tokens = await refToken(req.cookies.refreshToken);
 
     res.cookie("accessToken", tokens.accessToken, {
       httpOnly: true,
@@ -131,7 +131,7 @@ const refresh = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 160 * 1000,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     return res.status(200).json({
@@ -139,9 +139,9 @@ const refresh = async (req, res) => {
       message: "Access token refreshed",
     });
   } catch (error) {
-    return res.status(500).json({
+    return res.status(error.statusCode || 401).json({
       success: false,
-      message: "Unable to refresh session",
+      message: error.message || "Unable to refresh session",
     });
   }
 };

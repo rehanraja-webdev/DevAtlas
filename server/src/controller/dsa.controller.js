@@ -2,6 +2,7 @@ import {
   fetchDSAStats,
   getAllProblems,
   getMyDSAProgress,
+  getSingleProblem,
   updateUserDSAProgress,
 } from "../services/dsa.service.js";
 
@@ -36,6 +37,22 @@ export const getProblems = async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getProblemById = async (req, res) => {
+  try {
+    const problem = await getSingleProblem(req.params.problemId);
+    return res.status(200).json({
+      success: true,
+      message: "Problem fetched successfully",
+      data: { problem },
+    });
+  } catch (error) {
+    return res.status(404).json({
       success: false,
       message: error.message,
     });

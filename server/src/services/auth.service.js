@@ -132,12 +132,9 @@ export const createSession = async (user, metadata) => {
   };
 };
 
-export const refToken = async (refreshToken, res) => {
+export const refToken = async (refreshToken) => {
   if (!refreshToken) {
-    return res.status(401).json({
-      success: false,
-      message: "Refresh token required!",
-    });
+    throw new ApiError(401, "Refresh token required");
   }
 
   const tokenHash = hashToken(refreshToken);
@@ -149,10 +146,7 @@ export const refToken = async (refreshToken, res) => {
   }).populate("user");
 
   if (!session) {
-    return res.status(401).json({
-      success: false,
-      message: "Invalid refresh token",
-    });
+    throw new ApiError(401, "Invalid or expired refresh token");
   }
 
   if (session.revokedAt) {
@@ -167,11 +161,11 @@ export const refToken = async (refreshToken, res) => {
       },
     );
 
-    throw new Error("Refresh token reuse detected");
+    throw new ApiError(401, "Refresh token reuse detected");
   }
 
   if (session.expiresAt <= new Date()) {
-    throw new Error("Refresh token expired");
+    throw new ApiError(401, "Refresh token expired");
   }
 
   const newRefreshToken = generateRefreshToken();

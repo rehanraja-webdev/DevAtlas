@@ -8,6 +8,7 @@ import { registerSchema } from "../validators/auth.validator.js";
 const router = express.Router();
 
 router.post("/refresh", authController.refresh);
+router.post("/auth/refresh", authController.refresh);
 
 router.post(
   "/auth/register",

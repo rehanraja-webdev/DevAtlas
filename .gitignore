@@ -7,3 +7,9 @@ dist/
 coverage/
 
 .DS_Store
+desktop.ini
+
+# Exclude docs and context files from git as requested
+docs/
+DEVATLAS_CONTEXT.md
+DEVATLAS_GOVERNANCE.md

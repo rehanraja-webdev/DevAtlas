@@ -11,6 +11,7 @@ import projectRoutes from "./routes/project.routes.js";
 import activityRoutes from "./routes/activity.routes.js";
 import analyticsRoutes from "./routes/analytics.routes.js";
 import reportRoutes from "./routes/report.routes.js";
+import notificationRoutes from "./routes/notification.routes.js";
 import { errorMiddleware } from "./middleware/error.middleware.js";
 
 const app = express();
@@ -38,9 +39,7 @@ app.use("/api/v1/projects", projectRoutes);
 app.use("/api/v1/activities", activityRoutes);
 app.use("/api/v1/analytics", analyticsRoutes);
 app.use("/api/v1/report", reportRoutes);
-
-//handle errors
-app.use(errorMiddleware);
+app.use("/api/v1/notifications", notificationRoutes);
 
 app.use("/api/v1/test", testRoutes);
 app.get("/api/v1/health", (req, res) => {
@@ -49,5 +48,8 @@ app.get("/api/v1/health", (req, res) => {
     message: "DevAtlas API is healthy",
   });
 });
+
+// Centralized error handling middleware - must be mounted last
+app.use(errorMiddleware);
 
 export default app;
