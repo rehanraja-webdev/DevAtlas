@@ -1,122 +1,159 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useAuthStore } from "./stores/authStore.js";
+
+// Layout & Route Guards
+import { AppLayout } from "./components/layout/AppLayout.jsx";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute.jsx";
+import { PublicRoute } from "./components/auth/PublicRoute.jsx";
+
+// Pages
+import { LoginPage } from "./pages/auth/LoginPage.jsx";
+import { RegisterPage } from "./pages/auth/RegisterPage.jsx";
+import { DashboardPage } from "./pages/dashboard/DashboardPage.jsx";
+import { DSAPage } from "./pages/dsa/DSAPage.jsx";
+import { RoadmapPage } from "./pages/roadmap/RoadmapPage.jsx";
+import { SkillsPage } from "./pages/skills/SkillsPage.jsx";
+import { ProjectsPage } from "./pages/projects/ProjectsPage.jsx";
+import { MentorPage } from "./pages/mentor/MentorPage.jsx";
+import { ActivityPage } from "./pages/activity/ActivityPage.jsx";
+import { SettingsPage } from "./pages/settings/SettingsPage.jsx";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 function App() {
-  const [count, setCount] = useState(0)
+  const { checkAuth } = useAuthStore();
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <Routes>
+          {/* Public Auth Routes */}
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <LoginPage />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <PublicRoute>
+                <RegisterPage />
+              </PublicRoute>
+            }
+          />
 
-      <div className="ticks"></div>
+          {/* Protected Application Workspace Routes */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <DashboardPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+          <Route
+            path="/dsa"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <DSAPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+          <Route
+            path="/roadmap"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <RoadmapPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/skills"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <SkillsPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/projects"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <ProjectsPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/mentor"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <MentorPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/activity"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <ActivityPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <SettingsPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Fallback & Root Navigation */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
 }
 
-export default App
+export default App;
