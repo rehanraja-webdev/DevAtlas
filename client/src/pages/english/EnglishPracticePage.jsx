@@ -10,37 +10,31 @@ import {
   RotateCcw,
   Bot,
   Lightbulb,
-  Award,
-  MessageSquare,
-  Phone,
-  PhoneOff,
-  PhoneCall,
-  Headphones,
   Radio,
   Clock,
   CheckCircle2,
   ChevronRight,
-  ShieldCheck,
-  Zap,
+  MessageSquare,
+  Flame,
+  ArrowRight,
+  X,
 } from "lucide-react";
 
 const SCENARIOS = [
-  { id: "general", label: "🌟 Free Conversation", desc: "Open-ended chat about any topic, question, or daily life" },
+  { id: "general", label: "🌟 Free Conversation", desc: "Open-ended chat about any topic, coding, or daily life" },
   { id: "standup", label: "🎙️ Daily Standup", desc: "Practice agile sprint updates, blockers, and dependencies" },
   { id: "interview", label: "💼 Job Interview Prep", desc: "Practice behavioral and technical self-introductions" },
   { id: "casual", label: "☕ Office Banter", desc: "Friendly watercooler chats, hobbies, and polite small talk" },
 ];
 
 export const EnglishPracticePage = () => {
-  // View mode: "call" (cellphone call simulation) or "chat" (transcript feed)
-  const [activeMode, setActiveMode] = useState("call");
-  
   const [messages, setMessages] = useState([
     {
       role: "aaravi",
-      text: "Namaste! I am Aaravi, your AI English conversation companion. You can talk to me about anything—your day, code, interview worries, or any custom question you have. How are you feeling today?",
+      text: "Namaste! I am Aaravi, your AI English practice companion. You can ask me any question or speak about any topic—from tech and career goals to your daily routine. How can I help you practice today?",
       grammarTip: "Speaking at a steady, relaxed pace helps your clarity and confidence shine.",
-      vocabularyUpgrade: "Instead of 'I feel good', try 'I feel energetic and focused'.",
+      vocabularyUpgrade: "Instead of 'I want to say', try 'I would like to share'.",
+      confidenceScore: 92,
     },
   ]);
 
@@ -50,43 +44,18 @@ export const EnglishPracticePage = () => {
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-
-  // Cell phone call state
-  const [isCallActive, setIsCallActive] = useState(true);
-  const [callDuration, setCallDuration] = useState(0);
+  const [showTranscript, setShowTranscript] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState("");
 
   const recognitionRef = useRef(null);
-  const messagesEndRef = useRef(null);
-  const callTimerRef = useRef(null);
+  const transcriptEndRef = useRef(null);
 
-  // Call duration ticker
+  // Auto-scroll transcript drawer
   useEffect(() => {
-    if (isCallActive) {
-      callTimerRef.current = setInterval(() => {
-        setCallDuration((prev) => prev + 1);
-      }, 1000);
-    } else {
-      if (callTimerRef.current) clearInterval(callTimerRef.current);
+    if (showTranscript) {
+      transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-    return () => {
-      if (callTimerRef.current) clearInterval(callTimerRef.current);
-    };
-  }, [isCallActive]);
-
-  // Format call duration MM:SS
-  const formatCallTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-  };
-
-  // Auto-scroll in chat mode
-  useEffect(() => {
-    if (activeMode === "chat") {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages, activeMode]);
+  }, [messages, showTranscript]);
 
   // Speech Recognition setup (English - India)
   useEffect(() => {
@@ -124,17 +93,23 @@ export const EnglishPracticePage = () => {
     if (!voiceEnabled || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(text);
+    // Clean text of markdown, tables, and bracketed notes for speech
+    const cleanForSpeech = text
+      .replace(/\|[\s\S]*?\|/g, "")
+      .replace(/[#*_`~]/g, "")
+      .replace(/\{[\s\S]*?\}/g, "")
+      .trim();
+
+    const utterance = new SpeechSynthesisUtterance(cleanForSpeech);
     utterance.lang = "en-IN";
     utterance.rate = 0.95;
-    utterance.pitch = 1.15; // Gentle, empathetic female pitch
+    utterance.pitch = 1.15; // Warm, gentle female pitch
 
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
 
     const voices = window.speechSynthesis.getVoices();
-    // Locate Indian English female voice
     const indianVoice =
       voices.find(
         (v) =>
@@ -147,10 +122,14 @@ export const EnglishPracticePage = () => {
             v.name.toLowerCase().includes("india")),
       ) ||
       voices.find((v) => v.lang === "en-IN" || v.lang === "en_IN") ||
-      voices.find((v) => v.lang.startsWith("en") && !v.name.includes("David") && !v.name.includes("Male"));
+      voices.find(
+        (v) =>
+          v.lang.startsWith("en") &&
+          !v.name.includes("David") &&
+          !v.name.includes("Male"),
+      );
 
     if (indianVoice) utterance.voice = indianVoice;
-
     window.speechSynthesis.speak(utterance);
   };
 
@@ -164,6 +143,9 @@ export const EnglishPracticePage = () => {
     if (isListening) {
       recognitionRef.current.stop();
       setIsListening(false);
+      if (inputText.trim()) {
+        handleSendMessage(inputText);
+      }
     } else {
       setLiveTranscript("");
       setInputText("");
@@ -171,7 +153,7 @@ export const EnglishPracticePage = () => {
       try {
         recognitionRef.current.start();
       } catch {
-        // already started
+        // already active
       }
     }
   };
@@ -188,14 +170,12 @@ export const EnglishPracticePage = () => {
 
     setInputText("");
     setLiveTranscript("");
-    
-    // Add user message to history
+
     const updatedMessages = [...messages, { role: "user", text: userText }];
     setMessages(updatedMessages);
     setLoading(true);
 
     try {
-      // Send message along with entire conversation history so Aaravi has full context
       const conversationHistory = updatedMessages.map((m) => ({
         role: m.role === "aaravi" ? "assistant" : "user",
         content: m.text,
@@ -208,7 +188,9 @@ export const EnglishPracticePage = () => {
       });
 
       const responseData = data?.data;
-      const aaraviReply = responseData?.reply || "I hear you clearly! Please go ahead and share more.";
+      const aaraviReply =
+        responseData?.reply ||
+        "I understand you clearly! Please continue sharing your thoughts.";
 
       setMessages((prev) => [
         ...prev,
@@ -217,13 +199,11 @@ export const EnglishPracticePage = () => {
           text: aaraviReply,
           grammarTip: responseData?.grammarTip,
           vocabularyUpgrade: responseData?.vocabularyUpgrade,
-          confidenceScore: responseData?.confidenceScore,
+          confidenceScore: responseData?.confidenceScore || 85,
         },
       ]);
 
-      if (isCallActive) {
-        speakWithIndianAccent(aaraviReply);
-      }
+      speakWithIndianAccent(aaraviReply);
     } catch (err) {
       setMessages((prev) => [
         ...prev,
@@ -242,303 +222,346 @@ export const EnglishPracticePage = () => {
     handleSendMessage(inputText);
   };
 
-  const handleEndCall = () => {
-    setIsCallActive(false);
-    if (window.speechSynthesis) window.speechSynthesis.cancel();
-    if (isListening && recognitionRef.current) recognitionRef.current.stop();
-    setActiveMode("chat");
-  };
+  const latestAaravi = [...messages].reverse().find((m) => m.role === "aaravi");
 
-  const handleRestartCall = () => {
-    setIsCallActive(true);
-    setCallDuration(0);
-    setActiveMode("call");
-    const welcome = `Namaste! I'm back on the call with you. What custom topic or question shall we explore now?`;
-    speakWithIndianAccent(welcome);
-  };
-
-  const latestAaraviMessage = [...messages].reverse().find((m) => m.role === "aaravi");
+  // Determine current active state for the Orb animation
+  const orbState = isSpeaking
+    ? "speaking"
+    : isListening
+    ? "listening"
+    : loading
+    ? "thinking"
+    : "idle";
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-10">
-      {/* Header & Mode Switcher */}
-      <div className="bg-[#101728] border border-slate-800/80 rounded-2xl p-5 sm:p-6 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Header Bar */}
+      <div className="bg-[#101728] border border-slate-800/80 rounded-2xl p-5 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-pink-400 text-xs font-bold uppercase tracking-wider mb-1">
-            <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
-            <span>AI English Speaking Coach • Indian Female Accent (en-IN)</span>
+            <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+            <span>AI English Fluency Agent • Indian Female Voice (en-IN)</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-3">
-            <span>Conversational Agent Aaravi</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
-              Live Phone Call Ready
+            <span>Agent Aaravi</span>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20 font-medium">
+              Real Voice AI
             </span>
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Communicate naturally with Aaravi about any topic. Ask custom questions, practice daily scenarios, and receive instant grammar & vocabulary feedback.
+          <p className="text-xs sm:text-sm text-slate-400 mt-1">
+            Converse freely about any topic. Aaravi responds dynamically to whatever you say and provides real-time grammar coaching.
           </p>
         </div>
 
-        {/* View Toggle */}
-        <div className="flex items-center gap-2 bg-[#0b0f19] p-1.5 rounded-xl border border-slate-800">
+        {/* Action Controls */}
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => setActiveMode("call")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
-              activeMode === "call"
-                ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/25"
-                : "text-slate-400 hover:text-white"
+            onClick={() => setShowTranscript(!showTranscript)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+              showTranscript
+                ? "bg-purple-600 text-white border-purple-500 shadow-lg shadow-purple-600/30"
+                : "bg-[#141d33] text-slate-300 border-slate-800 hover:text-white"
             }`}
           >
-            <Phone className="w-3.5 h-3.5" />
-            <span>Cell Phone Call</span>
+            <MessageSquare className="w-4 h-4" />
+            <span>Transcript ({messages.length})</span>
           </button>
+
           <button
-            onClick={() => setActiveMode("chat")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
-              activeMode === "chat"
-                ? "bg-slate-800 text-white"
-                : "text-slate-400 hover:text-white"
-            }`}
+            onClick={() => {
+              if (window.speechSynthesis) window.speechSynthesis.cancel();
+              setMessages([
+                {
+                  role: "aaravi",
+                  text: "Namaste! What fresh topic shall we explore together?",
+                },
+              ]);
+            }}
+            className="p-2.5 rounded-xl bg-[#141d33] hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+            title="Reset Conversation"
           >
-            <MessageSquare className="w-3.5 h-3.5" />
-            <span>Transcript Feed ({messages.length})</span>
+            <RotateCcw className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Scenario Selector */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* Scenario Filter Chips */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
         {SCENARIOS.map((sc) => (
           <button
             key={sc.id}
             onClick={() => setScenario(sc.id)}
-            className={`p-3.5 rounded-xl border text-left transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-semibold shrink-0 transition-all cursor-pointer border ${
               scenario === sc.id
-                ? "bg-purple-950/30 border-purple-500/60 shadow-lg shadow-purple-950/40 text-white"
-                : "bg-[#101728]/70 border-slate-800/80 hover:border-slate-700 text-slate-400 hover:text-slate-200"
+                ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white border-purple-500/50 shadow-md shadow-purple-900/30"
+                : "bg-[#101728] border-slate-800 text-slate-400 hover:text-slate-200"
             }`}
           >
-            <div className="text-sm font-semibold text-white mb-0.5">{sc.label}</div>
-            <div className="text-xs text-slate-400 line-clamp-1">{sc.desc}</div>
+            {sc.label}
           </button>
         ))}
       </div>
 
       {/* ========================================================================= */}
-      {/* MODE 1: CELL PHONE CALL INTERFACE                                         */}
+      {/* MODERN AI AGENT VOICE ORB STAGE                                           */}
       {/* ========================================================================= */}
-      {activeMode === "call" && (
-        <div className="relative mx-auto max-w-md w-full bg-[#0a0e17] rounded-[2.5rem] border-4 border-slate-800 p-6 shadow-2xl shadow-purple-950/30 flex flex-col items-center justify-between min-h-[620px] overflow-hidden">
-          {/* Smartphone Speaker Ear Piece & Status Header */}
-          <div className="w-full flex items-center justify-between text-xs text-slate-400 mb-6 px-2">
-            <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-400">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-              <span>5G • HD Voice</span>
-            </div>
-            <div className="w-20 h-1.5 rounded-full bg-slate-800" />
-            <div className="flex items-center gap-1.5 font-mono text-emerald-400 font-semibold">
-              <Clock className="w-3.5 h-3.5" />
-              <span>{formatCallTime(callDuration)}</span>
+      <div className="relative bg-gradient-to-b from-[#0e1424] via-[#0b0f19] to-[#0a0e17] border border-slate-800/80 rounded-3xl p-6 sm:p-10 shadow-2xl flex flex-col items-center justify-between min-h-[580px] overflow-hidden">
+        {/* Ambient Cosmic Background Glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-tr from-purple-600/15 via-pink-500/10 to-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Status Badge */}
+        <div className="relative z-10 flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/80 border border-slate-800 backdrop-blur-md text-xs font-medium text-slate-300">
+          <span
+            className={`w-2 h-2 rounded-full ${
+              orbState === "speaking"
+                ? "bg-pink-400 animate-ping"
+                : orbState === "listening"
+                ? "bg-emerald-400 animate-ping"
+                : orbState === "thinking"
+                ? "bg-amber-400 animate-spin"
+                : "bg-purple-400"
+            }`}
+          />
+          <span>
+            {orbState === "speaking"
+              ? "Aaravi Speaking (Indian Voice Output)..."
+              : orbState === "listening"
+              ? "Listening to your voice..."
+              : orbState === "thinking"
+              ? "Formulating dynamic response..."
+              : "Ready • Speak or type any query"}
+          </span>
+        </div>
+
+        {/* Central Glowing AI Voice Orb Animation */}
+        <div className="relative my-auto flex items-center justify-center py-8">
+          {/* Outer Pulsing Soundwave Rings (When Speaking or Listening) */}
+          {(orbState === "speaking" || orbState === "listening") && (
+            <>
+              <div
+                className={`absolute w-72 h-72 rounded-full border border-purple-500/30 ${
+                  orbState === "speaking"
+                    ? "animate-orb-wave-1 bg-pink-500/10"
+                    : "animate-orb-wave-1 bg-emerald-500/10 border-emerald-500/30"
+                }`}
+              />
+              <div
+                className={`absolute w-88 h-88 rounded-full border border-pink-500/20 ${
+                  orbState === "speaking"
+                    ? "animate-orb-wave-2 bg-purple-500/10"
+                    : "animate-orb-wave-2 bg-teal-500/10 border-teal-500/20"
+                }`}
+              />
+            </>
+          )}
+
+          {/* Celestial Orbital Rings */}
+          <div className="absolute w-64 h-64 rounded-full border border-purple-500/20 border-dashed animate-spin-slow pointer-events-none" />
+          <div className="absolute w-52 h-52 rounded-full border border-indigo-400/20 pointer-events-none" />
+
+          {/* The Core Fluid Morphing Sphere */}
+          <div
+            className={`relative z-10 w-44 h-44 rounded-full flex items-center justify-center transition-all duration-700 shadow-2xl ${
+              orbState === "speaking"
+                ? "bg-gradient-to-tr from-pink-600 via-purple-600 to-indigo-500 shadow-pink-500/50 scale-105"
+                : orbState === "listening"
+                ? "bg-gradient-to-tr from-emerald-500 via-teal-600 to-indigo-600 shadow-emerald-500/50 scale-105"
+                : orbState === "thinking"
+                ? "bg-gradient-to-tr from-amber-500 via-purple-600 to-pink-600 shadow-purple-500/50 scale-95"
+                : "bg-gradient-to-tr from-purple-700 via-indigo-600 to-pink-600 shadow-purple-600/40 animate-orb-breathe"
+            }`}
+          >
+            {/* Inner Glass Core with Sound Wave Bars */}
+            <div className="w-36 h-36 rounded-full bg-slate-950/70 backdrop-blur-md border border-white/20 flex items-center justify-center gap-1.5 shadow-inner">
+              {orbState === "speaking" ? (
+                // Oscillating audio frequency bars
+                <div className="flex items-center gap-1.5 h-12">
+                  <div className="w-1.5 bg-pink-400 rounded-full animate-equalizer-bar" style={{ animationDelay: "0ms" }} />
+                  <div className="w-1.5 bg-purple-400 rounded-full animate-equalizer-bar" style={{ animationDelay: "150ms" }} />
+                  <div className="w-1.5 bg-indigo-300 rounded-full animate-equalizer-bar" style={{ animationDelay: "300ms" }} />
+                  <div className="w-1.5 bg-pink-300 rounded-full animate-equalizer-bar" style={{ animationDelay: "450ms" }} />
+                  <div className="w-1.5 bg-purple-400 rounded-full animate-equalizer-bar" style={{ animationDelay: "200ms" }} />
+                </div>
+              ) : orbState === "listening" ? (
+                // Emerald mic wave bars
+                <div className="flex items-center gap-1.5 h-12">
+                  <div className="w-1.5 bg-emerald-400 rounded-full animate-equalizer-bar" style={{ animationDelay: "0ms" }} />
+                  <div className="w-1.5 bg-teal-400 rounded-full animate-equalizer-bar" style={{ animationDelay: "200ms" }} />
+                  <div className="w-1.5 bg-emerald-300 rounded-full animate-equalizer-bar" style={{ animationDelay: "400ms" }} />
+                </div>
+              ) : orbState === "thinking" ? (
+                <div className="w-8 h-8 rounded-full border-2 border-purple-400 border-t-transparent animate-spin" />
+              ) : (
+                <Sparkles className="w-8 h-8 text-purple-300 animate-pulse" />
+              )}
             </div>
           </div>
+        </div>
 
-          {/* Caller Profile & Animated Voice Ring */}
-          <div className="flex flex-col items-center text-center space-y-4 my-auto">
-            <div className="relative flex items-center justify-center">
-              {/* Voice Waves when Aaravi is speaking */}
-              {isSpeaking && (
-                <>
-                  <div className="absolute w-44 h-44 rounded-full bg-pink-500/20 animate-ping" />
-                  <div className="absolute w-36 h-36 rounded-full bg-purple-500/30 animate-pulse" />
-                </>
+        {/* Live Dynamic Subtitles & Coaching Display */}
+        <div className="relative z-10 w-full max-w-2xl space-y-3">
+          {/* Spoken Text Bubble */}
+          <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800/90 rounded-2xl p-4 sm:p-5 shadow-xl text-left">
+            <div className="text-[11px] uppercase tracking-wider font-bold text-slate-400 mb-1 flex items-center justify-between">
+              <span>{isListening ? "You (Speaking)" : "Aaravi's Response"}</span>
+              {latestAaravi?.confidenceScore && (
+                <span className="text-emerald-400 font-semibold">
+                  Fluency Confidence: {latestAaravi.confidenceScore}%
+                </span>
               )}
-              {/* Mic pulse when user is speaking */}
-              {isListening && (
-                <div className="absolute w-40 h-40 rounded-full bg-emerald-500/25 animate-ping" />
-              )}
-
-              {/* Avatar circle */}
-              <div className="relative z-10 w-28 h-28 rounded-full bg-gradient-to-tr from-purple-600 via-pink-600 to-indigo-600 p-1 shadow-2xl shadow-purple-500/40 flex items-center justify-center">
-                <div className="w-full h-full rounded-full bg-[#0d121f] flex flex-col items-center justify-center">
-                  <Bot className="w-12 h-12 text-pink-400" />
-                </div>
-              </div>
             </div>
 
-            <div>
-              <h2 className="text-2xl font-bold text-white tracking-wide">Aaravi</h2>
-              <p className="text-xs text-pink-400 font-medium mt-0.5">
-                {isSpeaking ? "Speaking in Indian English..." : isListening ? "Listening to your voice..." : "On Call • Connected"}
-              </p>
-            </div>
-
-            {/* Live Subtitle Card */}
-            <div className="w-full max-w-sm bg-slate-900/80 backdrop-blur-md border border-slate-800/80 rounded-2xl p-4 text-left shadow-lg">
-              <div className="text-[11px] uppercase font-bold text-slate-400 flex items-center justify-between mb-1.5">
-                <span>{isListening ? "Your Speech" : "Aaravi Speaking"}</span>
-                {isSpeaking && <span className="text-pink-400 animate-pulse">● Audio Active</span>}
-              </div>
-              <p className="text-xs sm:text-sm text-slate-200 leading-relaxed min-h-[50px]">
-                {isListening
-                  ? liveTranscript || "Listening... speak into your microphone!"
-                  : latestAaraviMessage?.text || "Hello! Feel free to talk to me about anything."}
-              </p>
-            </div>
-
-            {/* Live Coaching Toast (Grammar & Vocabulary) */}
-            {latestAaraviMessage?.grammarTip && (
-              <div className="w-full max-w-sm bg-purple-950/40 border border-purple-500/30 rounded-xl p-3 text-left">
-                <div className="flex items-center gap-1.5 text-purple-300 font-semibold text-[11px] mb-1">
-                  <Lightbulb className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span>Gentle Grammar Tip</span>
-                </div>
-                <p className="text-[11px] text-purple-200/90 leading-tight">
-                  {latestAaraviMessage.grammarTip}
-                </p>
-              </div>
-            )}
+            <p className="text-sm sm:text-base text-slate-100 font-normal leading-relaxed min-h-[44px]">
+              {isListening
+                ? liveTranscript || "Listening... speak freely into your microphone!"
+                : latestAaravi?.text || "Hello! Ask me any question or discuss anything on your mind."}
+            </p>
           </div>
 
-          {/* Quick Custom Query Input within Cell Phone */}
-          <form onSubmit={handleFormSubmit} className="w-full mt-4 flex items-center gap-2">
+          {/* Coaching Badges (Grammar & Vocabulary) */}
+          {(latestAaravi?.grammarTip || latestAaravi?.vocabularyUpgrade) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {latestAaravi.grammarTip && (
+                <div className="bg-purple-950/40 border border-purple-500/30 rounded-xl p-3 text-left">
+                  <div className="flex items-center gap-1.5 text-purple-300 font-semibold text-xs mb-1">
+                    <Lightbulb className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span>Grammar Insight</span>
+                  </div>
+                  <p className="text-xs text-purple-200/90 leading-relaxed">
+                    {latestAaravi.grammarTip}
+                  </p>
+                </div>
+              )}
+
+              {latestAaravi.vocabularyUpgrade && (
+                <div className="bg-pink-950/30 border border-pink-500/30 rounded-xl p-3 text-left">
+                  <div className="flex items-center gap-1.5 text-pink-300 font-semibold text-xs mb-1">
+                    <Sparkles className="w-3.5 h-3.5 text-pink-400 shrink-0" />
+                    <span>Vocabulary Upgrade</span>
+                  </div>
+                  <p className="text-xs text-pink-200/90 leading-relaxed">
+                    {latestAaravi.vocabularyUpgrade}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Tactile Voice & Text Input Dock */}
+        <div className="relative z-10 w-full max-w-2xl mt-6 pt-4 border-t border-slate-900/90 flex flex-col gap-3">
+          <form onSubmit={handleFormSubmit} className="flex items-center gap-2">
+            {/* Push-to-Talk Mic Toggle */}
+            <button
+              type="button"
+              onClick={handleToggleMic}
+              className={`p-3.5 rounded-2xl font-bold transition-all flex items-center justify-center shrink-0 cursor-pointer ${
+                isListening
+                  ? "bg-emerald-500 text-white shadow-xl shadow-emerald-500/40 animate-pulse"
+                  : "bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/30"
+              }`}
+              title={isListening ? "Stop Listening & Send" : "Click to Speak via Microphone"}
+            >
+              {isListening ? <Mic className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            </button>
+
+            {/* Custom Query Input */}
             <input
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Or type any custom query..."
-              className="flex-1 bg-slate-900/90 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors"
+              placeholder="Or type any custom statement or question..."
+              className="flex-1 bg-slate-900/90 border border-slate-800 rounded-2xl px-4 py-3.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors shadow-inner"
             />
+
+            {/* Send Button */}
             <button
               type="submit"
               disabled={loading || !inputText.trim()}
-              className="p-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white disabled:opacity-50 transition-all shadow-md"
+              className="px-5 py-3.5 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold text-sm disabled:opacity-40 transition-all shadow-lg shadow-purple-600/25 flex items-center gap-2 cursor-pointer shrink-0"
             >
-              <Send className="w-3.5 h-3.5" />
-            </button>
-          </form>
-
-          {/* Phone Call Tactile Action Buttons */}
-          <div className="w-full grid grid-cols-4 gap-3 pt-5 border-t border-slate-900 mt-4">
-            {/* 1. Mute/Unmute Mic (Push to Talk / Voice Call) */}
-            <button
-              type="button"
-              onClick={handleToggleMic}
-              className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-all ${
-                isListening
-                  ? "bg-emerald-600 text-white shadow-lg shadow-emerald-500/30 animate-pulse"
-                  : "bg-slate-800/80 hover:bg-slate-700 text-slate-300"
-              }`}
-            >
-              {isListening ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-              <span className="text-[10px] font-medium">{isListening ? "Talking" : "Mic"}</span>
+              <Send className="w-4 h-4" />
+              <span className="hidden sm:inline">Send</span>
             </button>
 
-            {/* 2. Speaker Audio Output Toggle */}
+            {/* Voice Audio Speaker Toggle */}
             <button
               type="button"
               onClick={() => {
-                if (voiceEnabled) {
-                  window.speechSynthesis?.cancel();
-                }
+                if (voiceEnabled) window.speechSynthesis?.cancel();
                 setVoiceEnabled(!voiceEnabled);
               }}
-              className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-all ${
+              className={`p-3.5 rounded-2xl border transition-colors cursor-pointer shrink-0 ${
                 voiceEnabled
-                  ? "bg-slate-800/80 hover:bg-slate-700 text-slate-300"
-                  : "bg-amber-950/40 text-amber-400 border border-amber-500/30"
+                  ? "bg-slate-800 text-slate-300 border-slate-700 hover:text-white"
+                  : "bg-amber-950/40 text-amber-400 border-amber-500/30"
               }`}
+              title={voiceEnabled ? "Voice Output Active" : "Voice Output Muted"}
             >
               {voiceEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
-              <span className="text-[10px] font-medium">{voiceEnabled ? "Speaker" : "Muted"}</span>
             </button>
 
-            {/* 3. Replay Last Audio */}
+            {/* Audio Replay */}
             <button
               type="button"
               onClick={() => {
-                if (latestAaraviMessage?.text) speakWithIndianAccent(latestAaraviMessage.text);
+                if (latestAaravi?.text) speakWithIndianAccent(latestAaravi.text);
               }}
-              className="flex flex-col items-center gap-1 p-3 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition-all"
+              className="p-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors cursor-pointer shrink-0"
+              title="Replay Voice Audio"
             >
               <RotateCcw className="w-5 h-5" />
-              <span className="text-[10px] font-medium">Replay</span>
             </button>
-
-            {/* 4. End Call Button */}
-            <button
-              type="button"
-              onClick={isCallActive ? handleEndCall : handleRestartCall}
-              className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-all ${
-                isCallActive
-                  ? "bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/30"
-                  : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30"
-              }`}
-            >
-              {isCallActive ? <PhoneOff className="w-5 h-5" /> : <PhoneCall className="w-5 h-5" />}
-              <span className="text-[10px] font-medium">{isCallActive ? "End" : "Call"}</span>
-            </button>
-          </div>
+          </form>
         </div>
-      )}
+      </div>
 
       {/* ========================================================================= */}
-      {/* MODE 2: CHAT TRANSCRIPT FEED VIEW                                         */}
+      {/* TRANSCRIPT SLIDE-OVER DRAWER (HISTORY)                                     */}
       {/* ========================================================================= */}
-      {activeMode === "chat" && (
-        <div className="bg-[#101728] border border-slate-800/80 rounded-2xl shadow-2xl flex flex-col h-[650px] overflow-hidden">
-          {/* Transcript Control Header */}
-          <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-[#0d121f]">
+      {showTranscript && (
+        <div className="bg-[#101728] border border-slate-800/80 rounded-2xl shadow-2xl p-6 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
             <div className="flex items-center gap-2">
               <Bot className="w-5 h-5 text-pink-400" />
-              <span className="text-sm font-semibold text-white">Conversation Transcript with Aaravi</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
-                {messages.length} messages
-              </span>
+              <h3 className="text-base font-bold text-white">Full Conversation History</h3>
             </div>
             <button
-              onClick={() => {
-                setMessages([
-                  {
-                    role: "aaravi",
-                    text: "Namaste! What new topic shall we discuss today?",
-                  },
-                ]);
-              }}
-              className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors"
+              onClick={() => setShowTranscript(false)}
+              className="text-slate-400 hover:text-white transition-colors cursor-pointer"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Clear History</span>
+              <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Messages Scroll Area */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
             {messages.map((m, idx) => (
               <div
                 key={idx}
-                className={`flex gap-3 ${m.role === "user" ? "justify-end" : "justify-start"}`}
+                className={`flex gap-3 ${
+                  m.role === "user" ? "justify-end" : "justify-start"
+                }`}
               >
                 {m.role === "aaravi" && (
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-600 flex items-center justify-center shrink-0 shadow-md">
-                    <Bot className="w-5 h-5 text-white" />
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-600 flex items-center justify-center shrink-0 shadow-md">
+                    <Bot className="w-4 h-4 text-white" />
                   </div>
                 )}
 
                 <div
-                  className={`max-w-xl rounded-2xl p-4.5 space-y-3 ${
+                  className={`max-w-xl rounded-2xl p-4 space-y-2 ${
                     m.role === "user"
-                      ? "bg-purple-600 text-white rounded-tr-none shadow-lg shadow-purple-600/15"
+                      ? "bg-purple-600 text-white rounded-tr-none shadow-md"
                       : "bg-[#161f36] border border-slate-800/80 text-slate-200 rounded-tl-none shadow-md"
                   }`}
                 >
-                  <div className="text-sm leading-relaxed">{m.text}</div>
+                  <div className="text-xs sm:text-sm leading-relaxed">{m.text}</div>
 
-                  {/* Audio Replay for Aaravi's Turn */}
                   {m.role === "aaravi" && (
                     <div className="flex items-center gap-2 pt-1 border-t border-slate-800/60">
                       <button
                         onClick={() => speakWithIndianAccent(m.text)}
-                        className="text-xs text-pink-400 hover:text-pink-300 flex items-center gap-1 transition-colors font-medium"
+                        className="text-xs text-pink-400 hover:text-pink-300 flex items-center gap-1 transition-colors font-medium cursor-pointer"
                       >
                         <Volume2 className="w-3.5 h-3.5" />
                         <span>Listen Voice</span>
@@ -546,67 +569,20 @@ export const EnglishPracticePage = () => {
                     </div>
                   )}
 
-                  {/* Grammar & Vocabulary Cards */}
                   {m.grammarTip && (
-                    <div className="bg-purple-950/50 border border-purple-500/30 rounded-xl p-3 text-xs text-purple-200 space-y-1">
-                      <div className="font-semibold text-purple-300 flex items-center gap-1">
-                        <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Grammar Guidance</span>
+                    <div className="bg-purple-950/40 border border-purple-500/30 rounded-xl p-2.5 text-xs text-purple-200">
+                      <div className="font-semibold text-purple-300 flex items-center gap-1 mb-0.5">
+                        <Lightbulb className="w-3 h-3 text-amber-400" />
+                        <span>Grammar Note</span>
                       </div>
                       <p>{m.grammarTip}</p>
-                    </div>
-                  )}
-
-                  {m.vocabularyUpgrade && (
-                    <div className="bg-pink-950/40 border border-pink-500/30 rounded-xl p-3 text-xs text-pink-200 space-y-1">
-                      <div className="font-semibold text-pink-300 flex items-center gap-1">
-                        <Sparkles className="w-3.5 h-3.5 text-pink-400" />
-                        <span>Vocabulary Upgrade</span>
-                      </div>
-                      <p>{m.vocabularyUpgrade}</p>
                     </div>
                   )}
                 </div>
               </div>
             ))}
-            <div ref={messagesEndRef} />
+            <div ref={transcriptEndRef} />
           </div>
-
-          {/* Chat Input Bar */}
-          <form
-            onSubmit={handleFormSubmit}
-            className="p-4 bg-[#0d121f] border-t border-slate-800 flex items-center gap-3"
-          >
-            <button
-              type="button"
-              onClick={handleToggleMic}
-              className={`p-3 rounded-xl transition-all ${
-                isListening
-                  ? "bg-emerald-600 text-white animate-pulse shadow-lg shadow-emerald-600/30"
-                  : "bg-slate-800 text-slate-300 hover:text-white"
-              }`}
-              title="Speak via microphone"
-            >
-              {isListening ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
-            </button>
-
-            <input
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="Ask Aaravi any custom question or respond..."
-              className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors"
-            />
-
-            <button
-              type="submit"
-              disabled={loading || !inputText.trim()}
-              className="px-5 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold text-sm disabled:opacity-50 transition-all shadow-lg shadow-purple-600/20 flex items-center gap-2"
-            >
-              <Send className="w-4 h-4" />
-              <span>Send</span>
-            </button>
-          </form>
         </div>
       )}
     </div>

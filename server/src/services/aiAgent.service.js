@@ -18,12 +18,51 @@
 
 // Helper to query external LLMs if user configured an API key in .env
 export const callExternalLLM = async ({ systemPrompt, messages, temperature = 0.7 }) => {
+  const groqKey = process.env.GROQ_API_KEY;
   const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   const openAiKey = process.env.OPENAI_API_KEY;
-  const groqKey = process.env.GROQ_API_KEY;
   const ollamaUrl = process.env.OLLAMA_BASE_URL;
 
-  // 1. Google Gemini API
+  // 1. Groq API (Ultra-fast inference with verified models)
+  if (groqKey) {
+    const groqModels = [
+      "openai/gpt-oss-120b",
+      "qwen/qwen3.8-27b",
+      "openai/gpt-oss-20b",
+      "allam-2-7b",
+    ];
+
+    for (const model of groqModels) {
+      try {
+        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${groqKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: "system", content: systemPrompt }, ...messages],
+            temperature,
+            max_tokens: 800,
+          }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const text = data?.choices?.[0]?.message?.content;
+          if (text) return text.trim();
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          console.warn(`Groq model ${model} failed (${res.status}):`, errData?.error?.message || res.statusText);
+        }
+      } catch (err) {
+        console.warn(`Groq error on ${model}:`, err.message);
+      }
+    }
+  }
+
+  // 2. Google Gemini API
   if (geminiKey) {
     try {
       const formattedContents = messages.map((m) => ({
@@ -50,11 +89,11 @@ export const callExternalLLM = async ({ systemPrompt, messages, temperature = 0.
         if (text) return text.trim();
       }
     } catch (err) {
-      console.warn("Gemini API call failed, falling back to autonomous engine:", err.message);
+      console.warn("Gemini API call failed, trying next provider:", err.message);
     }
   }
 
-  // 2. OpenAI API
+  // 3. OpenAI API
   if (openAiKey) {
     try {
       const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -77,34 +116,7 @@ export const callExternalLLM = async ({ systemPrompt, messages, temperature = 0.
         if (text) return text.trim();
       }
     } catch (err) {
-      console.warn("OpenAI API call failed, falling back to autonomous engine:", err.message);
-    }
-  }
-
-  // 3. Groq API
-  if (groqKey) {
-    try {
-      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${groqKey}`,
-        },
-        body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
-          messages: [{ role: "system", content: systemPrompt }, ...messages],
-          temperature,
-          max_tokens: 800,
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const text = data?.choices?.[0]?.message?.content;
-        if (text) return text.trim();
-      }
-    } catch (err) {
-      console.warn("Groq API call failed, falling back to autonomous engine:", err.message);
+      console.warn("OpenAI API call failed, trying next provider:", err.message);
     }
   }
 
