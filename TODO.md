@@ -123,3 +123,16 @@ This document outlines the systematic implementation roadmap for the DevAtlas pl
 - [x] **Task 5.4: Frontend Routing & Production Bundle Verification**
   - Integrated navigation links in `AppLayout.jsx` and registered routes in `App.jsx`.
   - Verified clean production build using Vite (`npm run build`).
+
+---
+
+## Phase 6: Autonomous Agent Architecture & Cell Phone Call Experience
+- [x] **Task 6.1: Universal AI Agent Core (`aiAgent.service.js`)**
+  - Built multi-turn conversational engine supporting Gemini/OpenAI/Groq/Ollama LLM endpoints and autonomous NLP reasoning.
+  - Generates adaptive, custom answers for any user inquiry (emotional, career, technical, casual) with deep grammar diagnostics.
+- [x] **Task 6.2: Cell Phone Call Mode for Agent Aaravi (`EnglishPracticePage.jsx`)**
+  - Designed tactile smartphone calling interface with live call timer, animated voice frequency waves, and Indian female speech synthesis (`en-IN`).
+  - Implemented continuous voice recognition with automatic turn-taking and real-time coaching cards.
+- [x] **Task 6.3: Live Two-Way Technical Interview Discussion (`InterviewPage.jsx` & `interview.service.js`)**
+  - Added `interactInInterviewRound` endpoint enabling candidate-interviewer dialogue within active rounds.
+  - Evaluates custom candidate queries, scale clarifications, and architectural trade-offs dynamically.

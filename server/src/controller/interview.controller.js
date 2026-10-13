@@ -2,6 +2,7 @@ import {
   analyzeResumeData,
   getInterviewHistoryService,
   getInterviewSessionService,
+  interactInInterviewRound,
   startInterviewSession,
   submitInterviewAnswer,
 } from "../services/interview.service.js";
@@ -51,6 +52,24 @@ export const submitAnswer = async (req, res) => {
       success: true,
       message: "Answer submitted and evaluated",
       data: { session },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const interactInRound = async (req, res) => {
+  try {
+    const { sessionId, message } = req.body;
+    const result = await interactInInterviewRound(req.user.userId, sessionId, message);
+
+    return res.status(200).json({
+      success: true,
+      message: "Interviewer responded",
+      data: result,
     });
   } catch (error) {
     return res.status(500).json({

@@ -11,7 +11,15 @@ const interviewRoundSchema = new mongoose.Schema(
     question: { type: String, required: true },
     candidateAnswer: { type: String, default: "" },
     feedback: { type: String, default: "" },
+    followUpQuestion: { type: String, default: "" },
     score: { type: Number, min: 0, max: 100, default: 0 },
+    conversation: [
+      {
+        role: { type: String, enum: ["interviewer", "candidate"], required: true },
+        content: { type: String, required: true },
+        timestamp: { type: Date, default: Date.now },
+      },
+    ],
   },
   { _id: false },
 );

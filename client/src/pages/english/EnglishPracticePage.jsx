@@ -12,60 +12,108 @@ import {
   Lightbulb,
   Award,
   MessageSquare,
-  Coffee,
-  Briefcase,
-  Users,
-  Compass,
+  Phone,
+  PhoneOff,
+  PhoneCall,
+  Headphones,
+  Radio,
+  Clock,
+  CheckCircle2,
+  ChevronRight,
+  ShieldCheck,
+  Zap,
 } from "lucide-react";
 
 const SCENARIOS = [
-  { id: "general", label: "🌟 Free Conversation", desc: "Casual practice to build daily confidence and flow" },
-  { id: "standup", label: "🎙️ Daily Standup", desc: "Practice sprint updates, tasks completed, and blockers" },
-  { id: "interview", label: "💼 Job Interview", desc: "Practice self-introductions, project explanations, and strengths" },
+  { id: "general", label: "🌟 Free Conversation", desc: "Open-ended chat about any topic, question, or daily life" },
+  { id: "standup", label: "🎙️ Daily Standup", desc: "Practice agile sprint updates, blockers, and dependencies" },
+  { id: "interview", label: "💼 Job Interview Prep", desc: "Practice behavioral and technical self-introductions" },
   { id: "casual", label: "☕ Office Banter", desc: "Friendly watercooler chats, hobbies, and polite small talk" },
 ];
 
 export const EnglishPracticePage = () => {
+  // View mode: "call" (cellphone call simulation) or "chat" (transcript feed)
+  const [activeMode, setActiveMode] = useState("call");
+  
   const [messages, setMessages] = useState([
     {
       role: "aaravi",
-      text: "Namaste and warm greetings! I am Aaravi, your AI English practice companion. I'm here to converse with you in a gentle, supportive, and polite space. You can speak with me using your microphone or type your thoughts. What would you like to chat about today?",
-      grammarTip: "Speaking naturally and with calm pauses is the secret to confident communication.",
-      vocabularyUpgrade: "Instead of saying 'I want to say', try 'I would like to share'.",
+      text: "Namaste! I am Aaravi, your AI English conversation companion. You can talk to me about anything—your day, code, interview worries, or any custom question you have. How are you feeling today?",
+      grammarTip: "Speaking at a steady, relaxed pace helps your clarity and confidence shine.",
+      vocabularyUpgrade: "Instead of 'I feel good', try 'I feel energetic and focused'.",
     },
   ]);
+
   const [inputText, setInputText] = useState("");
   const [scenario, setScenario] = useState("general");
   const [loading, setLoading] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // Cell phone call state
+  const [isCallActive, setIsCallActive] = useState(true);
+  const [callDuration, setCallDuration] = useState(0);
+  const [liveTranscript, setLiveTranscript] = useState("");
 
   const recognitionRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const callTimerRef = useRef(null);
 
-  // Auto-scroll
+  // Call duration ticker
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (isCallActive) {
+      callTimerRef.current = setInterval(() => {
+        setCallDuration((prev) => prev + 1);
+      }, 1000);
+    } else {
+      if (callTimerRef.current) clearInterval(callTimerRef.current);
+    }
+    return () => {
+      if (callTimerRef.current) clearInterval(callTimerRef.current);
+    };
+  }, [isCallActive]);
 
-  // Speech Recognition setup
+  // Format call duration MM:SS
+  const formatCallTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  };
+
+  // Auto-scroll in chat mode
+  useEffect(() => {
+    if (activeMode === "chat") {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, activeMode]);
+
+  // Speech Recognition setup (English - India)
   useEffect(() => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       const recognizer = new SpeechRecognition();
       recognizer.continuous = false;
-      recognizer.interimResults = false;
-      recognizer.lang = "en-IN"; // English (India) speech recognition
+      recognizer.interimResults = true;
+      recognizer.lang = "en-IN";
 
       recognizer.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        setInputText((prev) => (prev ? `${prev} ${transcript}` : transcript));
+        let currentTranscript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          currentTranscript += event.results[i][0].transcript;
+        }
+        setLiveTranscript(currentTranscript);
+        setInputText(currentTranscript);
+      };
+
+      recognizer.onerror = () => {
         setIsListening(false);
       };
 
-      recognizer.onerror = () => setIsListening(false);
-      recognizer.onend = () => setIsListening(false);
+      recognizer.onend = () => {
+        setIsListening(false);
+      };
 
       recognitionRef.current = recognizer;
     }
@@ -79,10 +127,14 @@ export const EnglishPracticePage = () => {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-IN";
     utterance.rate = 0.95;
-    utterance.pitch = 1.1; // Gentle, polite female pitch
+    utterance.pitch = 1.15; // Gentle, empathetic female pitch
+
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
 
     const voices = window.speechSynthesis.getVoices();
-    // Prioritize Indian English female voices
+    // Locate Indian English female voice
     const indianVoice =
       voices.find(
         (v) =>
@@ -95,13 +147,14 @@ export const EnglishPracticePage = () => {
             v.name.toLowerCase().includes("india")),
       ) ||
       voices.find((v) => v.lang === "en-IN" || v.lang === "en_IN") ||
-      voices.find((v) => v.lang.startsWith("en") && !v.name.includes("David"));
+      voices.find((v) => v.lang.startsWith("en") && !v.name.includes("David") && !v.name.includes("Male"));
 
     if (indianVoice) utterance.voice = indianVoice;
 
     window.speechSynthesis.speak(utterance);
   };
 
+  // Toggle Microphone
   const handleToggleMic = () => {
     if (!recognitionRef.current) {
       alert("Microphone recognition is not supported in this browser. Please type your message.");
@@ -112,28 +165,50 @@ export const EnglishPracticePage = () => {
       recognitionRef.current.stop();
       setIsListening(false);
     } else {
+      setLiveTranscript("");
+      setInputText("");
       setIsListening(true);
-      recognitionRef.current.start();
+      try {
+        recognitionRef.current.start();
+      } catch {
+        // already started
+      }
     }
   };
 
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if (!inputText.trim() || loading) return;
+  // Send message to Aaravi
+  const handleSendMessage = async (textToSend) => {
+    const userText = (textToSend || inputText).trim();
+    if (!userText || loading) return;
 
-    const userText = inputText.trim();
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+
     setInputText("");
-    setMessages((prev) => [...prev, { role: "user", text: userText }]);
+    setLiveTranscript("");
+    
+    // Add user message to history
+    const updatedMessages = [...messages, { role: "user", text: userText }];
+    setMessages(updatedMessages);
     setLoading(true);
 
     try {
+      // Send message along with entire conversation history so Aaravi has full context
+      const conversationHistory = updatedMessages.map((m) => ({
+        role: m.role === "aaravi" ? "assistant" : "user",
+        content: m.text,
+      }));
+
       const { data } = await api.post("/english-practice/chat", {
         message: userText,
         scenario,
+        conversationHistory,
       });
 
       const responseData = data?.data;
-      const aaraviReply = responseData?.reply || "I understand you clearly. Please continue sharing!";
+      const aaraviReply = responseData?.reply || "I hear you clearly! Please go ahead and share more.";
 
       setMessages((prev) => [
         ...prev,
@@ -146,13 +221,15 @@ export const EnglishPracticePage = () => {
         },
       ]);
 
-      speakWithIndianAccent(aaraviReply);
+      if (isCallActive) {
+        speakWithIndianAccent(aaraviReply);
+      }
     } catch (err) {
       setMessages((prev) => [
         ...prev,
         {
           role: "aaravi",
-          text: "I am listening closely, but had a momentary connection slip. Please try saying that once again!",
+          text: "I am listening closely, but my connection momentarily dropped. Please ask me again, I'm right here with you!",
         },
       ]);
     } finally {
@@ -160,198 +237,378 @@ export const EnglishPracticePage = () => {
     }
   };
 
-  const handleResetChat = () => {
-    if (window.speechSynthesis) window.speechSynthesis.cancel();
-    setMessages([
-      {
-        role: "aaravi",
-        text: `Namaste! We are now practicing in the "${SCENARIOS.find((s) => s.id === scenario)?.label}" mode. Please feel free to begin whenever you are ready.`,
-      },
-    ]);
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    handleSendMessage(inputText);
   };
 
-  return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Agent Branding Header */}
-      <div className="bg-[#101728] border border-slate-800/80 rounded-2xl p-6 sm:p-7 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
-          {/* Aaravi Avatar with Glowing Halo */}
-          <div className="relative">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-emerald-400 p-0.5 shadow-xl shadow-purple-500/20">
-              <div className="w-full h-full bg-[#0d1322] rounded-2xl flex items-center justify-center">
-                <Sparkles className="w-8 h-8 text-purple-300" />
-              </div>
-            </div>
-            <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-[#101728] rounded-full" />
-          </div>
+  const handleEndCall = () => {
+    setIsCallActive(false);
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    if (isListening && recognitionRef.current) recognitionRef.current.stop();
+    setActiveMode("chat");
+  };
 
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-                Aaravi
-              </h1>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-500/10 text-purple-300 border border-purple-500/30">
-                Indian Female Voice
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 mt-1">
-              Your polite, friendly AI companion for fluent professional English communication.
-            </p>
+  const handleRestartCall = () => {
+    setIsCallActive(true);
+    setCallDuration(0);
+    setActiveMode("call");
+    const welcome = `Namaste! I'm back on the call with you. What custom topic or question shall we explore now?`;
+    speakWithIndianAccent(welcome);
+  };
+
+  const latestAaraviMessage = [...messages].reverse().find((m) => m.role === "aaravi");
+
+  return (
+    <div className="space-y-6 max-w-5xl mx-auto pb-10">
+      {/* Header & Mode Switcher */}
+      <div className="bg-[#101728] border border-slate-800/80 rounded-2xl p-5 sm:p-6 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-pink-400 text-xs font-bold uppercase tracking-wider mb-1">
+            <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
+            <span>AI English Speaking Coach • Indian Female Accent (en-IN)</span>
           </div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-3">
+            <span>Conversational Agent Aaravi</span>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
+              Live Phone Call Ready
+            </span>
+          </h1>
+          <p className="text-sm text-slate-400 mt-1">
+            Communicate naturally with Aaravi about any topic. Ask custom questions, practice daily scenarios, and receive instant grammar & vocabulary feedback.
+          </p>
         </div>
 
-        {/* Audio Controls */}
-        <div className="flex items-center gap-3">
+        {/* View Toggle */}
+        <div className="flex items-center gap-2 bg-[#0b0f19] p-1.5 rounded-xl border border-slate-800">
           <button
-            onClick={() => setVoiceEnabled(!voiceEnabled)}
-            className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 border transition-all cursor-pointer ${
-              voiceEnabled
-                ? "bg-purple-600/20 text-purple-300 border-purple-500/40"
-                : "bg-slate-800 text-slate-500 border-slate-700"
+            onClick={() => setActiveMode("call")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+              activeMode === "call"
+                ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/25"
+                : "text-slate-400 hover:text-white"
             }`}
           >
-            {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-            <span>{voiceEnabled ? "Voice Enabled" : "Voice Muted"}</span>
+            <Phone className="w-3.5 h-3.5" />
+            <span>Cell Phone Call</span>
           </button>
           <button
-            onClick={handleResetChat}
-            className="p-2 rounded-xl bg-[#141d33] hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 transition-colors"
-            title="Reset conversation"
+            onClick={() => setActiveMode("chat")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+              activeMode === "chat"
+                ? "bg-slate-800 text-white"
+                : "text-slate-400 hover:text-white"
+            }`}
           >
-            <RotateCcw className="w-4 h-4" />
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>Transcript Feed ({messages.length})</span>
           </button>
         </div>
       </div>
 
-      {/* Scenario Selector Pills */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+      {/* Scenario Selector */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {SCENARIOS.map((sc) => (
           <button
             key={sc.id}
-            onClick={() => {
-              setScenario(sc.id);
-              if (window.speechSynthesis) window.speechSynthesis.cancel();
-            }}
-            className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+            onClick={() => setScenario(sc.id)}
+            className={`p-3.5 rounded-xl border text-left transition-all ${
               scenario === sc.id
-                ? "bg-[#141e38] border-purple-500/50 shadow-md shadow-purple-950/30"
-                : "bg-[#101728] border-slate-800/80 hover:border-slate-700 text-slate-400"
+                ? "bg-purple-950/30 border-purple-500/60 shadow-lg shadow-purple-950/40 text-white"
+                : "bg-[#101728]/70 border-slate-800/80 hover:border-slate-700 text-slate-400 hover:text-slate-200"
             }`}
           >
-            <p className="text-xs font-bold text-white">{sc.label}</p>
-            <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">{sc.desc}</p>
+            <div className="text-sm font-semibold text-white mb-0.5">{sc.label}</div>
+            <div className="text-xs text-slate-400 line-clamp-1">{sc.desc}</div>
           </button>
         ))}
       </div>
 
-      {/* Main Conversation Window */}
-      <div className="bg-[#101728] border border-slate-800/80 rounded-2xl p-4 sm:p-6 shadow-2xl flex flex-col h-[540px]">
-        {/* Message Feed */}
-        <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-          {messages.map((msg, idx) => (
-            <div
-              key={idx}
-              className={`flex flex-col ${
-                msg.role === "user" ? "items-end" : "items-start"
+      {/* ========================================================================= */}
+      {/* MODE 1: CELL PHONE CALL INTERFACE                                         */}
+      {/* ========================================================================= */}
+      {activeMode === "call" && (
+        <div className="relative mx-auto max-w-md w-full bg-[#0a0e17] rounded-[2.5rem] border-4 border-slate-800 p-6 shadow-2xl shadow-purple-950/30 flex flex-col items-center justify-between min-h-[620px] overflow-hidden">
+          {/* Smartphone Speaker Ear Piece & Status Header */}
+          <div className="w-full flex items-center justify-between text-xs text-slate-400 mb-6 px-2">
+            <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-400">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <span>5G • HD Voice</span>
+            </div>
+            <div className="w-20 h-1.5 rounded-full bg-slate-800" />
+            <div className="flex items-center gap-1.5 font-mono text-emerald-400 font-semibold">
+              <Clock className="w-3.5 h-3.5" />
+              <span>{formatCallTime(callDuration)}</span>
+            </div>
+          </div>
+
+          {/* Caller Profile & Animated Voice Ring */}
+          <div className="flex flex-col items-center text-center space-y-4 my-auto">
+            <div className="relative flex items-center justify-center">
+              {/* Voice Waves when Aaravi is speaking */}
+              {isSpeaking && (
+                <>
+                  <div className="absolute w-44 h-44 rounded-full bg-pink-500/20 animate-ping" />
+                  <div className="absolute w-36 h-36 rounded-full bg-purple-500/30 animate-pulse" />
+                </>
+              )}
+              {/* Mic pulse when user is speaking */}
+              {isListening && (
+                <div className="absolute w-40 h-40 rounded-full bg-emerald-500/25 animate-ping" />
+              )}
+
+              {/* Avatar circle */}
+              <div className="relative z-10 w-28 h-28 rounded-full bg-gradient-to-tr from-purple-600 via-pink-600 to-indigo-600 p-1 shadow-2xl shadow-purple-500/40 flex items-center justify-center">
+                <div className="w-full h-full rounded-full bg-[#0d121f] flex flex-col items-center justify-center">
+                  <Bot className="w-12 h-12 text-pink-400" />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h2 className="text-2xl font-bold text-white tracking-wide">Aaravi</h2>
+              <p className="text-xs text-pink-400 font-medium mt-0.5">
+                {isSpeaking ? "Speaking in Indian English..." : isListening ? "Listening to your voice..." : "On Call • Connected"}
+              </p>
+            </div>
+
+            {/* Live Subtitle Card */}
+            <div className="w-full max-w-sm bg-slate-900/80 backdrop-blur-md border border-slate-800/80 rounded-2xl p-4 text-left shadow-lg">
+              <div className="text-[11px] uppercase font-bold text-slate-400 flex items-center justify-between mb-1.5">
+                <span>{isListening ? "Your Speech" : "Aaravi Speaking"}</span>
+                {isSpeaking && <span className="text-pink-400 animate-pulse">● Audio Active</span>}
+              </div>
+              <p className="text-xs sm:text-sm text-slate-200 leading-relaxed min-h-[50px]">
+                {isListening
+                  ? liveTranscript || "Listening... speak into your microphone!"
+                  : latestAaraviMessage?.text || "Hello! Feel free to talk to me about anything."}
+              </p>
+            </div>
+
+            {/* Live Coaching Toast (Grammar & Vocabulary) */}
+            {latestAaraviMessage?.grammarTip && (
+              <div className="w-full max-w-sm bg-purple-950/40 border border-purple-500/30 rounded-xl p-3 text-left">
+                <div className="flex items-center gap-1.5 text-purple-300 font-semibold text-[11px] mb-1">
+                  <Lightbulb className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span>Gentle Grammar Tip</span>
+                </div>
+                <p className="text-[11px] text-purple-200/90 leading-tight">
+                  {latestAaraviMessage.grammarTip}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Quick Custom Query Input within Cell Phone */}
+          <form onSubmit={handleFormSubmit} className="w-full mt-4 flex items-center gap-2">
+            <input
+              type="text"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              placeholder="Or type any custom query..."
+              className="flex-1 bg-slate-900/90 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors"
+            />
+            <button
+              type="submit"
+              disabled={loading || !inputText.trim()}
+              className="p-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white disabled:opacity-50 transition-all shadow-md"
+            >
+              <Send className="w-3.5 h-3.5" />
+            </button>
+          </form>
+
+          {/* Phone Call Tactile Action Buttons */}
+          <div className="w-full grid grid-cols-4 gap-3 pt-5 border-t border-slate-900 mt-4">
+            {/* 1. Mute/Unmute Mic (Push to Talk / Voice Call) */}
+            <button
+              type="button"
+              onClick={handleToggleMic}
+              className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-all ${
+                isListening
+                  ? "bg-emerald-600 text-white shadow-lg shadow-emerald-500/30 animate-pulse"
+                  : "bg-slate-800/80 hover:bg-slate-700 text-slate-300"
               }`}
             >
-              <div
-                className={`max-w-2xl rounded-2xl p-4 text-xs leading-relaxed ${
-                  msg.role === "user"
-                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
-                    : "bg-[#141d33] border border-slate-800 text-slate-200"
-                }`}
-              >
-                {msg.role === "aaravi" && (
-                  <div className="flex items-center justify-between gap-4 mb-2 pb-1.5 border-b border-slate-800">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-purple-400 flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" />
-                      <span>Aaravi (Coach)</span>
-                    </span>
-                    <button
-                      onClick={() => speakWithIndianAccent(msg.text)}
-                      className="text-slate-400 hover:text-purple-300 transition-colors"
-                      title="Listen with Indian accent"
-                    >
-                      <Volume2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                )}
+              {isListening ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+              <span className="text-[10px] font-medium">{isListening ? "Talking" : "Mic"}</span>
+            </button>
 
-                <p className="whitespace-pre-wrap">{msg.text}</p>
+            {/* 2. Speaker Audio Output Toggle */}
+            <button
+              type="button"
+              onClick={() => {
+                if (voiceEnabled) {
+                  window.speechSynthesis?.cancel();
+                }
+                setVoiceEnabled(!voiceEnabled);
+              }}
+              className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-all ${
+                voiceEnabled
+                  ? "bg-slate-800/80 hover:bg-slate-700 text-slate-300"
+                  : "bg-amber-950/40 text-amber-400 border border-amber-500/30"
+              }`}
+            >
+              {voiceEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+              <span className="text-[10px] font-medium">{voiceEnabled ? "Speaker" : "Muted"}</span>
+            </button>
 
-                {/* Aaravi's Politeness & Grammar Breakdown */}
-                {msg.role === "aaravi" && (msg.grammarTip || msg.vocabularyUpgrade) && (
-                  <div className="mt-3 pt-3 border-t border-slate-800/80 space-y-2 text-[11px]">
-                    {msg.grammarTip && (
-                      <div className="flex items-start gap-1.5 text-emerald-300 bg-emerald-950/20 p-2 rounded-lg border border-emerald-500/20">
-                        <Lightbulb className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                        <span>{msg.grammarTip}</span>
-                      </div>
-                    )}
-                    {msg.vocabularyUpgrade && (
-                      <div className="flex items-start gap-1.5 text-purple-300 bg-purple-950/20 p-2 rounded-lg border border-purple-500/20">
-                        <Award className="w-3.5 h-3.5 text-purple-400 shrink-0 mt-0.5" />
-                        <span>{msg.vocabularyUpgrade}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
+            {/* 3. Replay Last Audio */}
+            <button
+              type="button"
+              onClick={() => {
+                if (latestAaraviMessage?.text) speakWithIndianAccent(latestAaraviMessage.text);
+              }}
+              className="flex flex-col items-center gap-1 p-3 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition-all"
+            >
+              <RotateCcw className="w-5 h-5" />
+              <span className="text-[10px] font-medium">Replay</span>
+            </button>
 
-          {loading && (
-            <div className="flex items-start">
-              <div className="bg-[#141d33] border border-slate-800 text-slate-400 p-3 rounded-2xl text-xs flex items-center gap-2">
-                <Sparkles className="w-3.5 h-3.5 text-purple-400 animate-spin" />
-                <span>Aaravi is preparing a polite response...</span>
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
+            {/* 4. End Call Button */}
+            <button
+              type="button"
+              onClick={isCallActive ? handleEndCall : handleRestartCall}
+              className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-all ${
+                isCallActive
+                  ? "bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/30"
+                  : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30"
+              }`}
+            >
+              {isCallActive ? <PhoneOff className="w-5 h-5" /> : <PhoneCall className="w-5 h-5" />}
+              <span className="text-[10px] font-medium">{isCallActive ? "End" : "Call"}</span>
+            </button>
+          </div>
         </div>
+      )}
 
-        {/* Real-time Voice & Text Input */}
-        <form
-          onSubmit={handleSendMessage}
-          className="mt-4 pt-4 border-t border-slate-800 flex items-center gap-2"
-        >
-          <button
-            type="button"
-            onClick={handleToggleMic}
-            className={`p-3 rounded-xl border transition-all cursor-pointer ${
-              isListening
-                ? "bg-rose-500 text-white animate-pulse shadow-lg shadow-rose-500/30"
-                : "bg-[#141d33] text-purple-400 border-slate-800 hover:bg-slate-800 hover:text-purple-300"
-            }`}
-            title={isListening ? "Listening... Click to stop" : "Click to speak in English"}
+      {/* ========================================================================= */}
+      {/* MODE 2: CHAT TRANSCRIPT FEED VIEW                                         */}
+      {/* ========================================================================= */}
+      {activeMode === "chat" && (
+        <div className="bg-[#101728] border border-slate-800/80 rounded-2xl shadow-2xl flex flex-col h-[650px] overflow-hidden">
+          {/* Transcript Control Header */}
+          <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-[#0d121f]">
+            <div className="flex items-center gap-2">
+              <Bot className="w-5 h-5 text-pink-400" />
+              <span className="text-sm font-semibold text-white">Conversation Transcript with Aaravi</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
+                {messages.length} messages
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                setMessages([
+                  {
+                    role: "aaravi",
+                    text: "Namaste! What new topic shall we discuss today?",
+                  },
+                ]);
+              }}
+              className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Clear History</span>
+            </button>
+          </div>
+
+          {/* Messages Scroll Area */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            {messages.map((m, idx) => (
+              <div
+                key={idx}
+                className={`flex gap-3 ${m.role === "user" ? "justify-end" : "justify-start"}`}
+              >
+                {m.role === "aaravi" && (
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-600 flex items-center justify-center shrink-0 shadow-md">
+                    <Bot className="w-5 h-5 text-white" />
+                  </div>
+                )}
+
+                <div
+                  className={`max-w-xl rounded-2xl p-4.5 space-y-3 ${
+                    m.role === "user"
+                      ? "bg-purple-600 text-white rounded-tr-none shadow-lg shadow-purple-600/15"
+                      : "bg-[#161f36] border border-slate-800/80 text-slate-200 rounded-tl-none shadow-md"
+                  }`}
+                >
+                  <div className="text-sm leading-relaxed">{m.text}</div>
+
+                  {/* Audio Replay for Aaravi's Turn */}
+                  {m.role === "aaravi" && (
+                    <div className="flex items-center gap-2 pt-1 border-t border-slate-800/60">
+                      <button
+                        onClick={() => speakWithIndianAccent(m.text)}
+                        className="text-xs text-pink-400 hover:text-pink-300 flex items-center gap-1 transition-colors font-medium"
+                      >
+                        <Volume2 className="w-3.5 h-3.5" />
+                        <span>Listen Voice</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Grammar & Vocabulary Cards */}
+                  {m.grammarTip && (
+                    <div className="bg-purple-950/50 border border-purple-500/30 rounded-xl p-3 text-xs text-purple-200 space-y-1">
+                      <div className="font-semibold text-purple-300 flex items-center gap-1">
+                        <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Grammar Guidance</span>
+                      </div>
+                      <p>{m.grammarTip}</p>
+                    </div>
+                  )}
+
+                  {m.vocabularyUpgrade && (
+                    <div className="bg-pink-950/40 border border-pink-500/30 rounded-xl p-3 text-xs text-pink-200 space-y-1">
+                      <div className="font-semibold text-pink-300 flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5 text-pink-400" />
+                        <span>Vocabulary Upgrade</span>
+                      </div>
+                      <p>{m.vocabularyUpgrade}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Chat Input Bar */}
+          <form
+            onSubmit={handleFormSubmit}
+            className="p-4 bg-[#0d121f] border-t border-slate-800 flex items-center gap-3"
           >
-            {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-          </button>
+            <button
+              type="button"
+              onClick={handleToggleMic}
+              className={`p-3 rounded-xl transition-all ${
+                isListening
+                  ? "bg-emerald-600 text-white animate-pulse shadow-lg shadow-emerald-600/30"
+                  : "bg-slate-800 text-slate-300 hover:text-white"
+              }`}
+              title="Speak via microphone"
+            >
+              {isListening ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+            </button>
 
-          <input
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            placeholder={
-              isListening
-                ? "Listening to your voice... Speak clearly in English..."
-                : "Speak via microphone or type in English here..."
-            }
-            className="flex-1 bg-[#141d33] border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500"
-          />
+            <input
+              type="text"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              placeholder="Ask Aaravi any custom question or respond..."
+              className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors"
+            />
 
-          <button
-            type="submit"
-            disabled={loading || !inputText.trim()}
-            className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-purple-600/25 transition-all cursor-pointer disabled:opacity-40"
-          >
-            <span>Send</span>
-            <Send className="w-3.5 h-3.5" />
-          </button>
-        </form>
-      </div>
+            <button
+              type="submit"
+              disabled={loading || !inputText.trim()}
+              className="px-5 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold text-sm disabled:opacity-50 transition-all shadow-lg shadow-purple-600/20 flex items-center gap-2"
+            >
+              <Send className="w-4 h-4" />
+              <span>Send</span>
+            </button>
+          </form>
+        </div>
+      )}
     </div>
   );
 };

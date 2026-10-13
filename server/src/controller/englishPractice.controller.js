@@ -2,8 +2,8 @@ import { chatWithAaravi } from "../services/englishPractice.service.js";
 
 export const talkToAaravi = async (req, res) => {
   try {
-    const { message, scenario } = req.body;
-    const response = await chatWithAaravi(req.user.userId, message, scenario);
+    const { message, scenario, conversationHistory } = req.body;
+    const response = await chatWithAaravi(req.user.userId, message, scenario, conversationHistory);
 
     return res.status(200).json({
       success: true,

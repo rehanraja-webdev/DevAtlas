@@ -4,6 +4,10 @@ import Skill from "../models/Skill.js";
 import Profile from "../models/Profile.js";
 import User from "../models/User.js";
 import { createActivity } from "./activity.service.js";
+import {
+  callExternalLLM,
+  generateInterviewerAutonomousResponse,
+} from "./aiAgent.service.js";
 
 export const analyzeResumeData = async (userId, customResumeText = "") => {
   const [user, profile, projects, skills] = await Promise.all([
@@ -23,10 +27,13 @@ export const analyzeResumeData = async (userId, customResumeText = "") => {
     // Extract key sections from provided text
     const lines = customResumeText.split("\n").map((l) => l.trim()).filter(Boolean);
     const detectedSkills = [];
-    const detectedProjects = [];
 
     // Parse keywords
-    const keywords = ["React", "Node.js", "Express", "MongoDB", "JavaScript", "TypeScript", "Python", "SQL", "Redis", "Docker", "AWS", "Git", "Next.js", "Tailwind", "Java", "C++", "DSA", "System Design"];
+    const keywords = [
+      "React", "Node.js", "Express", "MongoDB", "JavaScript", "TypeScript",
+      "Python", "SQL", "Redis", "Docker", "AWS", "Git", "Next.js", "Tailwind",
+      "Java", "C++", "DSA", "System Design", "Kafka", "PostgreSQL", "GraphQL"
+    ];
     keywords.forEach((kw) => {
       if (customResumeText.toLowerCase().includes(kw.toLowerCase())) {
         detectedSkills.push(kw);
@@ -45,7 +52,11 @@ export const analyzeResumeData = async (userId, customResumeText = "") => {
       summary:
         lines[1] ||
         `Goal-driven ${targetRole} with hands-on experience building scalable web applications and solving complex algorithmic challenges.`,
-      skills: detectedSkills.length ? detectedSkills : (skills.map((s) => s.name).length ? skills.map((s) => s.name) : ["JavaScript", "React", "Node.js", "MongoDB"]),
+      skills: detectedSkills.length
+        ? detectedSkills
+        : skills.length
+        ? skills.map((s) => s.name)
+        : ["JavaScript", "React", "Node.js", "MongoDB"],
       projects: projects.length
         ? projects.map((p) => ({
             title: p.title,
@@ -60,7 +71,7 @@ export const analyzeResumeData = async (userId, customResumeText = "") => {
             {
               title: "Enterprise Full Stack Web Platform",
               technologies: ["React", "Node.js", "Express", "MongoDB", "Tailwind CSS"],
-              description: "A production-grade web application featuring JWT session security and modular microservice design.",
+              description: "A production-grade web application featuring JWT session security and modular service-layer design.",
               bullets: [
                 "Built resilient REST APIs with schema validation and centralized error handling.",
                 "Optimized database indexing and implemented responsive modern client interfaces.",
@@ -148,12 +159,12 @@ export const startInterviewSession = async (userId, customResumeText = "") => {
     {
       questionNumber: 1,
       category: "project-deepdive",
-      question: `Hello ${resumeData.candidateName.split(" ")[0]}! I've reviewed your resume for the ${targetRole} role. Looking at your project "${primaryProject.title}" built with ${primaryProject.technologies?.join(", ")}, could you walk me through the high-level system architecture and why you chose that particular technology stack?`,
+      question: `Hello ${resumeData.candidateName.split(" ")[0]}! I've reviewed your resume for the ${targetRole} position. Looking at your project "${primaryProject.title}" built with ${primaryProject.technologies?.join(", ")}, could you walk me through the high-level system architecture and why you chose that particular technology stack?`,
     },
     {
       questionNumber: 2,
       category: "core-fundamentals",
-      question: `In your resume you highlighted skills in ${primarySkills}. When building high-traffic endpoints, how do you handle asynchronous operations, error propagation, and database connection pooling to avoid resource starvation?`,
+      question: `In your resume you highlighted experience with ${primarySkills}. When building high-traffic endpoints, how do you handle asynchronous operations, error propagation, and database connection pooling to avoid resource starvation?`,
     },
     {
       questionNumber: 3,
@@ -184,49 +195,143 @@ export const startInterviewSession = async (userId, customResumeText = "") => {
       question: q.question,
       candidateAnswer: "",
       feedback: "",
+      followUpQuestion: "",
       score: 0,
+      conversation: [
+        {
+          role: "interviewer",
+          content: q.question,
+          timestamp: new Date(),
+        },
+      ],
     })),
   });
 
   return session;
 };
 
-export const submitInterviewAnswer = async (userId, sessionId, candidateAnswer) => {
+/**
+ * Live interaction in interview round (allows candidate to chat/clarify with interviewer like on a phone call)
+ */
+export const interactInInterviewRound = async (userId, sessionId, candidateMessage) => {
   const session = await InterviewSession.findOne({ _id: sessionId, user: userId });
-
-  if (!session) {
-    throw new Error("Interview session not found");
-  }
-
-  if (session.status === "completed") {
-    return session;
-  }
+  if (!session) throw new Error("Interview session not found");
+  if (session.status === "completed") return { session, reply: "Interview is already completed." };
 
   const currentRound = session.rounds[session.currentRoundIndex];
-  if (!currentRound) {
-    throw new Error("Invalid round state");
+  if (!currentRound) throw new Error("Invalid round state");
+
+  // Append candidate message to round conversation
+  currentRound.conversation.push({
+    role: "candidate",
+    content: candidateMessage,
+    timestamp: new Date(),
+  });
+
+  let interviewerReply = "";
+
+  // Check LLM
+  const systemPrompt = `You are a Principal Software Engineer and hiring manager interviewing ${session.resumeData?.candidateName} for a ${session.targetRole} role.
+Ground all your responses in candidate's resume (Skills: ${(session.resumeData?.skills || []).join(", ")}, Projects: ${session.resumeData?.projects?.map((p) => p.title).join(", ")}).
+The candidate just said: "${candidateMessage}".
+Rules:
+1. Speak professionally, conversationally, and sharply like a top tech interviewer on a video/phone call.
+2. If they asked a clarifying question, answer it directly with realistic scale constraints.
+3. If they gave part of an answer, critique their technical choice and ask a probing follow-up.
+4. Keep response under 4 sentences so it is natural for speech synthesis.`;
+
+  try {
+    interviewerReply = await callExternalLLM({
+      systemPrompt,
+      messages: currentRound.conversation.map((m) => ({
+        role: m.role === "interviewer" ? "assistant" : "user",
+        content: m.content,
+      })),
+      temperature: 0.6,
+    });
+  } catch (err) {
+    console.warn("LLM call failed for interview round:", err.message);
   }
+
+  if (!interviewerReply) {
+    const { critique, dynamicFollowUp } = generateInterviewerAutonomousResponse({
+      candidateAnswer: candidateMessage,
+      currentRound,
+      roundIndex: session.currentRoundIndex,
+      resumeData: session.resumeData,
+      history: currentRound.conversation,
+    });
+    interviewerReply = `${critique} ${dynamicFollowUp}`;
+  }
+
+  currentRound.conversation.push({
+    role: "interviewer",
+    content: interviewerReply,
+    timestamp: new Date(),
+  });
+
+  await session.save();
+  return { session, reply: interviewerReply };
+};
+
+export const submitInterviewAnswer = async (userId, sessionId, candidateAnswer) => {
+  const session = await InterviewSession.findOne({ _id: sessionId, user: userId });
+  if (!session) throw new Error("Interview session not found");
+  if (session.status === "completed") return session;
+
+  const currentRound = session.rounds[session.currentRoundIndex];
+  if (!currentRound) throw new Error("Invalid round state");
 
   currentRound.candidateAnswer = candidateAnswer || "No verbal response recorded.";
 
-  // Real-time evaluation of candidate answer
-  const answerLength = candidateAnswer.trim().length;
-  let score = 70;
+  // Dynamic evaluation using LLM or Autonomous Agent Engine
+  let score = 75;
   let feedback = "";
+  let followUpQuestion = "";
 
-  if (answerLength < 30) {
-    score = 45;
-    feedback = "Answer was too brief. In a technical interview, aim to elaborate with technical specifics, architecture trade-offs, and examples.";
-  } else if (answerLength < 120) {
-    score = 75;
-    feedback = "Good direct answer. Consider grounding your explanation with concrete metrics, libraries, or architectural diagrams you implemented.";
-  } else {
-    score = Math.min(95, 82 + Math.floor(Math.random() * 12));
-    feedback = "Strong, articulated explanation! Demonstrated solid engineering intuition, practical terminology, and clear trade-off awareness.";
+  const systemPrompt = `You are a Principal Software Engineer evaluating an answer for a ${session.targetRole} interview.
+Resume Stack: ${(session.resumeData?.skills || []).join(", ")}.
+Question asked: "${currentRound.question}"
+Candidate Answer: "${candidateAnswer}"
+Evaluate the answer on architectural depth, trade-offs, and practical engineering.
+Output valid JSON:
+{"score": 85, "feedback": "Detailed technical critique (2-3 sentences)", "followUpQuestion": "A targeted follow-up question for deeper probe"}`;
+
+  try {
+    const llmJson = await callExternalLLM({
+      systemPrompt,
+      messages: [{ role: "user", content: `Evaluate this answer: "${candidateAnswer}"` }],
+      temperature: 0.3,
+    });
+
+    if (llmJson) {
+      const match = llmJson.match(/\{[\s\S]*\}/);
+      if (match) {
+        const parsed = JSON.parse(match[0]);
+        score = parsed.score || 75;
+        feedback = parsed.feedback || "Evaluated answer.";
+        followUpQuestion = parsed.followUpQuestion || "";
+      }
+    }
+  } catch (err) {
+    console.warn("LLM evaluation failed, using autonomous engine:", err.message);
+  }
+
+  if (!feedback) {
+    const autoEval = generateInterviewerAutonomousResponse({
+      candidateAnswer,
+      currentRound,
+      roundIndex: session.currentRoundIndex,
+      resumeData: session.resumeData,
+    });
+    score = autoEval.score;
+    feedback = autoEval.critique;
+    followUpQuestion = autoEval.dynamicFollowUp;
   }
 
   currentRound.score = score;
   currentRound.feedback = feedback;
+  currentRound.followUpQuestion = followUpQuestion;
 
   session.currentRoundIndex += 1;
 
@@ -246,12 +351,14 @@ export const submitInterviewAnswer = async (userId, sessionId, candidateAnswer) 
     else if (avgScore >= 60) recommendation = "Leaning Hire";
     else recommendation = "Needs Preparation";
 
+    const techMentioned = (session.resumeData?.skills || []).slice(0, 3).join(", ") || "full-stack technologies";
+
     session.scorecard = {
       overallScore: avgScore,
       technicalScore: techScore,
       communicationScore: commScore,
       problemSolvingScore,
-      feedbackSummary: `Candidate demonstrated solid foundation in ${session.resumeData.targetRole}. Project deep-dive answers showed practical implementation knowledge. Continuing to practice system design scaling and structured STAR responses will help achieve top-tier performance.`,
+      feedbackSummary: `Candidate demonstrated foundational understanding of ${session.targetRole} systems with practical insights into ${techMentioned}. Articulated project architectural decisions cleanly. Continued practice with edge-case handling in distributed environments will elevate performance to senior engineering benchmarks.`,
       strengths: [
         "Clear articulation of project tech stack and architectural choices",
         "Pragmatic approach to database query structures and error boundaries",

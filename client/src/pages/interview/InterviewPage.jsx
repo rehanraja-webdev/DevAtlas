@@ -20,6 +20,7 @@ import {
   FileText,
   Clock,
   Briefcase,
+  MessageSquare,
 } from "lucide-react";
 
 export const InterviewPage = () => {
@@ -34,6 +35,7 @@ export const InterviewPage = () => {
   const [session, setSession] = useState(null);
   const [candidateAnswer, setCandidateAnswer] = useState("");
   const [submittingAnswer, setSubmittingAnswer] = useState(false);
+  const [discussingWithInterviewer, setDiscussingWithInterviewer] = useState(false);
 
   // Audio / Speech State
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -206,6 +208,36 @@ export const InterviewPage = () => {
     }
   };
 
+  const handleDiscussWithInterviewer = async () => {
+    if (!candidateAnswer.trim() || discussingWithInterviewer) return;
+
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+
+    try {
+      setDiscussingWithInterviewer(true);
+      const { data } = await api.post("/interview/interact", {
+        sessionId: session._id,
+        message: candidateAnswer,
+      });
+
+      const updatedSession = data?.data?.session;
+      const reply = data?.data?.reply;
+      setSession(updatedSession);
+      setCandidateAnswer("");
+
+      if (reply) {
+        speakQuestion(reply);
+      }
+    } catch (err) {
+      console.error("Failed to interact with interviewer", err);
+    } finally {
+      setDiscussingWithInterviewer(false);
+    }
+  };
+
   const currentRound = session?.rounds?.[session?.currentRoundIndex];
 
   return (
@@ -366,6 +398,32 @@ export const InterviewPage = () => {
             </p>
           </div>
 
+          {/* Live Interactive Round Discussion Feed */}
+          {currentRound.conversation && currentRound.conversation.length > 1 && (
+            <div className="bg-[#101728] border border-slate-800 rounded-2xl p-5 space-y-3 shadow-xl">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-400">
+                Live Round Discussion
+              </span>
+              <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                {currentRound.conversation.slice(1).map((msg, i) => (
+                  <div
+                    key={i}
+                    className={`p-3.5 rounded-xl text-xs leading-relaxed ${
+                      msg.role === "candidate"
+                        ? "bg-purple-950/40 border border-purple-500/30 text-purple-200 ml-6"
+                        : "bg-[#141d33] border border-indigo-500/30 text-slate-200 mr-6"
+                    }`}
+                  >
+                    <div className="font-semibold text-[10px] text-slate-400 uppercase mb-1">
+                      {msg.role === "candidate" ? "You (Candidate)" : "Interviewer"}
+                    </div>
+                    <div>{msg.content}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Candidate Response Section */}
           <form
             onSubmit={handleSubmitAnswer}
@@ -399,32 +457,46 @@ export const InterviewPage = () => {
             </div>
 
             <textarea
-              rows="6"
-              required
+              rows="5"
               value={candidateAnswer}
               onChange={(e) => setCandidateAnswer(e.target.value)}
               placeholder="Speak using your microphone or articulate your answer here with architecture details, decisions, and trade-offs..."
               className="w-full bg-[#141d33] border border-slate-800 rounded-xl p-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 leading-relaxed"
             />
 
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
               <span className="text-xs text-slate-500">
                 {candidateAnswer.length} characters entered
               </span>
-              <button
-                type="submit"
-                disabled={submittingAnswer || !candidateAnswer.trim()}
-                className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/25 transition-all cursor-pointer disabled:opacity-50"
-              >
-                {submittingAnswer ? (
-                  <span>Evaluating answer...</span>
-                ) : (
-                  <>
-                    <span>Submit & Next Question</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleDiscussWithInterviewer}
+                  disabled={discussingWithInterviewer || !candidateAnswer.trim()}
+                  className="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-indigo-300 font-bold text-xs flex items-center gap-1.5 border border-slate-700 transition-all cursor-pointer disabled:opacity-50"
+                  title="Ask a clarifying question or discuss approach before finalizing"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>
+                    {discussingWithInterviewer ? "Interviewer replying..." : "Discuss / Ask Question"}
+                  </span>
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={submittingAnswer || !candidateAnswer.trim()}
+                  className="px-5 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-indigo-600/25 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {submittingAnswer ? (
+                    <span>Evaluating answer...</span>
+                  ) : (
+                    <>
+                      <span>Finalize & Next Round</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </form>
 
