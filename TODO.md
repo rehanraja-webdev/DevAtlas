@@ -36,16 +36,16 @@ This document outlines the systematic implementation roadmap for the DevAtlas pl
 ---
 
 ## Phase 2: Frontend Foundation & Setup
-- [ ] **Task 2.1: Tailwind CSS & Icon Setup**
+- [x] **Task 2.1: Tailwind CSS & Icon Setup**
   - Install and configure Tailwind CSS in `client/`.
   - Install `lucide-react` for high-quality developer icons.
   - Configure color system tokens in `index.css` (Dark theme: slate surfaces, subtle borders, brand violet/indigo accents).
-- [ ] **Task 2.2: API Client & Axios Interceptor**
+- [x] **Task 2.2: API Client & Axios Interceptor**
   - Set up Axios instance with base URL `/api/v1` and `withCredentials: true`.
   - Add response interceptor for automatic access token refresh on 401 with retry queue.
-- [ ] **Task 2.3: State Management (Zustand) & Auth Store**
+- [x] **Task 2.3: State Management (Zustand) & Auth Store**
   - Build `useAuthStore` managing user state, login, register, logout, and initial session verification via `/api/v1/auth/me`.
-- [ ] **Task 2.4: App Layout & Shell**
+- [x] **Task 2.4: App Layout & Shell**
   - Create persistent Sidebar with links (Dashboard, DSA, Roadmap, Skills, Projects, AI Mentor, Activity, Settings).
   - Create Header with user badge, career goal badge, and notification bell with badge.
   - Create Mobile responsive navigation bar and drawer.
