@@ -22,13 +22,16 @@ const activitySchema = new mongoose.Schema(
         "roadmap_completed",
         "skill_added",
         "skill_updated",
+        "lesson_viewed",
+        "quiz_attempted",
+        "exercise_submitted",
       ],
       required: true,
     },
 
     entityType: {
       type: String,
-      enum: ["dsa", "project", "roadmap", "skill"],
+      enum: ["dsa", "project", "roadmap", "skill", "lesson", "quiz", "exercise"],
       required: true,
     },
 
