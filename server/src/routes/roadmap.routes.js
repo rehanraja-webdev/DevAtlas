@@ -10,12 +10,10 @@ import {
 
 const router = express.Router();
 
+// List all available roadmaps
 router.get("/", authMiddleware, getRoadmaps);
 
-router.get("/:roadmapId", authMiddleware, getRoadmap);
-
-router.post("/:roadmapId/start", authMiddleware, startRoadmap);
-
+// Specific literal routes MUST precede parameterized routes (/:roadmapId)
 router.get("/my-roadmap", authMiddleware, getMyRoadmap);
 
 router.patch(
@@ -23,5 +21,10 @@ router.patch(
   authMiddleware,
   updateRoadmapProgress,
 );
+
+// Parameterized roadmap routes
+router.post("/:roadmapId/start", authMiddleware, startRoadmap);
+
+router.get("/:roadmapId", authMiddleware, getRoadmap);
 
 export default router;

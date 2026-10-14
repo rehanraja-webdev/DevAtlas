@@ -19,7 +19,7 @@ export const getRoadmaps = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || "Failed to fetch roadmaps",
     });
   }
 };
@@ -37,7 +37,7 @@ export const getRoadmap = async (req, res) => {
   } catch (error) {
     return res.status(404).json({
       success: false,
-      message: error.message,
+      message: error.message || "Roadmap not found",
     });
   }
 };
@@ -59,7 +59,7 @@ export const startRoadmap = async (req, res) => {
   } catch (error) {
     return res.status(400).json({
       success: false,
-      message: error.message,
+      message: error.message || "Failed to start roadmap",
     });
   }
 };
@@ -75,9 +75,9 @@ export const getMyRoadmap = async (req, res) => {
       },
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || "Failed to retrieve user roadmap",
     });
   }
 };
@@ -101,7 +101,7 @@ export const updateRoadmapProgress = async (req, res) => {
   } catch (error) {
     return res.status(400).json({
       success: false,
-      message: error.message,
+      message: error.message || "Failed to update roadmap progress",
     });
   }
 };

@@ -2,15 +2,28 @@ import Roadmap from "../models/Roadmap.js";
 import UserRoadmap from "../models/UserRoadmap.js";
 import { createActivity } from "./activity.service.js";
 import { deleteCache } from "../utils/cache.js";
+import { roadmaps as defaultRoadmaps } from "../data/roadmaps.js";
 
 export const getAllRoadmaps = async () => {
-  const roadmaps = await Roadmap.find().select("title careerGoal description");
+  let roadmaps = await Roadmap.find({ isPublished: { $ne: false } }).select(
+    "title careerGoal description items isPublished",
+  );
 
-  if (roadmaps.length === 0) {
-    throw new Error("Roadmap list is empty!");
+  // Auto-seed if database collection is empty
+  if (!roadmaps || roadmaps.length === 0) {
+    try {
+      if (defaultRoadmaps && defaultRoadmaps.length > 0) {
+        await Roadmap.insertMany(defaultRoadmaps);
+        roadmaps = await Roadmap.find({ isPublished: { $ne: false } }).select(
+          "title careerGoal description items isPublished",
+        );
+      }
+    } catch (err) {
+      console.error("Auto-seeding roadmaps fallback error:", err.message);
+    }
   }
 
-  return roadmaps;
+  return roadmaps || [];
 };
 
 export const getRoadmapById = async (roadmapId) => {
@@ -30,41 +43,49 @@ export const startRoadmapService = async (userId, roadmapId) => {
     throw new Error("Roadmap not found");
   }
 
-  const existing = await UserRoadmap.findOne({
+  let userRoadmap = await UserRoadmap.findOne({
     user: userId,
     roadmap: roadmapId,
   });
 
-  if (existing) {
-    throw new Error("Roadmap already started");
+  if (userRoadmap) {
+    // If roadmap already started, touch updatedAt to make it the active roadmap
+    userRoadmap.updatedAt = new Date();
+    await userRoadmap.save();
+    return await userRoadmap.populate("roadmap", "title careerGoal description items");
   }
 
   const progress = roadmap.items.map((item) => ({
     itemKey: item.key,
-    status: item.dependencies.length === 0 ? "not-started" : "locked",
+    status: !item.dependencies || item.dependencies.length === 0 ? "not-started" : "locked",
     progressPercent: 0,
   }));
 
-  const userRoadmap = await UserRoadmap.create({
+  userRoadmap = await UserRoadmap.create({
     user: userId,
     roadmap: roadmapId,
     progress,
+    overallProgress: 0,
   });
 
   await createActivity(userId, "roadmap_started", "roadmap", roadmapId, {
-    title: "User started a new roadmap!",
+    title: `Started ${roadmap.title}`,
   });
 
-  return userRoadmap;
+  return await userRoadmap.populate("roadmap", "title careerGoal description items");
 };
 
 export const getMyRoadmapService = async (userId) => {
+  // Sort by updatedAt desc to always fetch the most recently active roadmap for the user
   const userRoadmap = await UserRoadmap.findOne({
     user: userId,
-  }).populate("roadmap", "title careerGoal description items");
+  })
+    .sort({ updatedAt: -1 })
+    .populate("roadmap", "title careerGoal description items");
 
+  // If no roadmap has been started yet, return null cleanly
   if (!userRoadmap) {
-    throw new Error("No roadmap started");
+    return null;
   }
 
   return userRoadmap;
@@ -77,10 +98,12 @@ export const updateRoadmapProgressService = async (
 ) => {
   const userRoadmap = await UserRoadmap.findOne({
     user: userId,
-  }).populate("roadmap");
+  })
+    .sort({ updatedAt: -1 })
+    .populate("roadmap");
 
   if (!userRoadmap) {
-    throw new Error("Roadmap not found");
+    throw new Error("No active roadmap found");
   }
 
   const progressItem = userRoadmap.progress.find(
@@ -88,31 +111,43 @@ export const updateRoadmapProgressService = async (
   );
 
   if (!progressItem) {
-    throw new Error("Roadmap not found");
+    throw new Error(`Milestone '${itemKey}' not found in active roadmap`);
   }
 
   const roadmapItem = userRoadmap.roadmap.items.find(
     (item) => item.key === itemKey,
   );
 
-  const dependenciesCompleted = await roadmapItem.dependencies.every(
-    (dependency) => {
-      const dependencyProgress = userRoadmap.progress.find(
-        (item) => item.itemKey === dependency,
-      );
+  if (!roadmapItem) {
+    throw new Error(`Milestone specification '${itemKey}' not found`);
+  }
 
-      return dependencyProgress?.status === "completed";
-    },
-  );
+  // Validate prerequisites if progressing past 0
+  if (progressPercent > 0 && roadmapItem.dependencies?.length > 0) {
+    const dependenciesCompleted = roadmapItem.dependencies.every(
+      (depKey) => {
+        const depProg = userRoadmap.progress.find(
+          (item) => item.itemKey === depKey,
+        );
+        return depProg?.status === "completed" || depProg?.progressPercent === 100;
+      },
+    );
 
-  if (!dependenciesCompleted) {
-    throw new Error("Complete the required topic first");
+    if (!dependenciesCompleted) {
+      throw new Error("Complete the required prerequisite topics first");
+    }
   }
 
   progressItem.progressPercent = progressPercent;
 
   if (progressPercent === 0) {
-    progressItem.status = "not-started";
+    const allDepsMet =
+      !roadmapItem.dependencies?.length ||
+      roadmapItem.dependencies.every((depKey) => {
+        const depProg = userRoadmap.progress.find((p) => p.itemKey === depKey);
+        return depProg?.status === "completed" || depProg?.progressPercent === 100;
+      });
+    progressItem.status = allDepsMet ? "not-started" : "locked";
   } else if (progressPercent < 100) {
     progressItem.status = "in-progress";
     if (!progressItem.startedAt) {
@@ -123,14 +158,31 @@ export const updateRoadmapProgressService = async (
     progressItem.completedAt = new Date();
   }
 
+  // Auto-unlock downstream milestones whose dependencies are now fully satisfied
+  userRoadmap.progress.forEach((pItem) => {
+    if (pItem.status === "locked") {
+      const rItem = userRoadmap.roadmap.items.find((i) => i.key === pItem.itemKey);
+      if (rItem && rItem.dependencies?.length > 0) {
+        const allMet = rItem.dependencies.every((depKey) => {
+          const dProg = userRoadmap.progress.find((p) => p.itemKey === depKey);
+          return dProg?.status === "completed" || dProg?.progressPercent === 100;
+        });
+        if (allMet) {
+          pItem.status = "not-started";
+        }
+      }
+    }
+  });
+
   const completedCount = userRoadmap.progress.filter(
-    (item) => item.status === "completed",
+    (item) => item.status === "completed" || item.progressPercent === 100,
   ).length;
 
   userRoadmap.overallProgress = Math.round(
     (completedCount / userRoadmap.progress.length) * 100,
   );
 
+  userRoadmap.updatedAt = new Date();
   await userRoadmap.save();
 
   const type =
