@@ -176,4 +176,11 @@ This document outlines the systematic implementation roadmap for the DevAtlas pl
   - Added "Help & Docs" to the authenticated `AppLayout` sidebar and header shortcut icon.
   - Added "← Back to Home" and "Need help? Visit our Help Center" navigation links to `LoginPage.jsx` and `RegisterPage.jsx`.
   - Registered all public routes in `App.jsx` with root navigation pointing to the new public landing page.
+- [x] **Task 8.8: Multi-Roadmap Engine & /my-roadmap Route Resolution**
+  - Fixed Express route precedence order in `roadmap.routes.js` placing `/my-roadmap` before parameterized `/:roadmapId` to prevent Mongoose `CastError`.
+  - Upgraded `startRoadmapService` and `getMyRoadmapService` with active timestamp sorting and multi-roadmap switching support.
+  - Implemented dynamic milestone unlocking so completed milestones automatically unblock downstream locked topics.
+  - Integrated 5 complete, industry-standard career roadmaps: Full Stack MERN, Frontend Architect, Backend Microservices, AI Systems Engineer, and Core Software Engineer.
+  - Added in-workspace Career Track Switcher in `RoadmapPage.jsx` allowing developers to switch between active roadmaps seamlessly.
+
 

@@ -11,6 +11,14 @@ import {
   Boxes,
   ArrowRight,
   BookOpen,
+  Layers,
+  Code2,
+  Server,
+  Cpu,
+  Terminal,
+  ChevronRight,
+  Check,
+  AlertCircle,
 } from "lucide-react";
 
 export const RoadmapPage = () => {
@@ -19,6 +27,7 @@ export const RoadmapPage = () => {
   const [loading, setLoading] = useState(true);
   const [updatingKey, setUpdatingKey] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showTrackSwitcher, setShowTrackSwitcher] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -29,7 +38,7 @@ export const RoadmapPage = () => {
         api.get("/roadmaps"),
       ]);
 
-      if (myRes.status === "fulfilled") {
+      if (myRes.status === "fulfilled" && myRes.value.data?.data?.roadmap) {
         setUserRoadmap(myRes.value.data?.data?.roadmap);
       } else {
         setUserRoadmap(null);
@@ -54,6 +63,7 @@ export const RoadmapPage = () => {
       setLoading(true);
       setErrorMessage("");
       await api.post(`/roadmaps/${roadmapId}/start`);
+      setShowTrackSwitcher(false);
       await fetchData();
     } catch (err) {
       setErrorMessage(
@@ -71,10 +81,14 @@ export const RoadmapPage = () => {
       const { data } = await api.patch(`/roadmaps/my-roadmap/items/${itemKey}`, {
         progressPercent: percent,
       });
+
+      const updatedProgress = data?.data?.userRoadmap?.progress;
+      const updatedOverall = data?.data?.userRoadmap?.overallProgress;
+
       setUserRoadmap((prev) => ({
         ...prev,
-        progress: data?.data?.userRoadmap?.progress || prev.progress,
-        overallProgress: data?.data?.userRoadmap?.overallProgress ?? prev.overallProgress,
+        progress: updatedProgress || prev.progress,
+        overallProgress: updatedOverall ?? prev.overallProgress,
       }));
     } catch (err) {
       setErrorMessage(
@@ -100,6 +114,21 @@ export const RoadmapPage = () => {
     progressMap[p.itemKey] = p;
   });
 
+  const getTrackIcon = (goal) => {
+    switch (goal) {
+      case "frontend-developer":
+        return Code2;
+      case "backend-developer":
+        return Server;
+      case "ai-engineer":
+        return Cpu;
+      case "software-engineer":
+        return Terminal;
+      default:
+        return Compass;
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Page Header */}
@@ -110,59 +139,130 @@ export const RoadmapPage = () => {
             <span>Learning Roadmap</span>
           </h1>
           <p className="text-sm text-slate-400 mt-1">
-            Structured career milestones with prerequisite sequencing and mastery tracking.
+            Structured career milestones with prerequisite sequencing, topic mastery, and skill telemetry.
           </p>
         </div>
+
+        {userRoadmap && allRoadmaps.length > 1 && (
+          <button
+            onClick={() => setShowTrackSwitcher(!showTrackSwitcher)}
+            className="px-4 py-2 rounded-xl bg-[#141d33] hover:bg-slate-800 border border-slate-700 text-indigo-300 text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer self-start sm:self-auto shadow-sm"
+          >
+            <Layers className="w-4 h-4 text-indigo-400" />
+            <span>{showTrackSwitcher ? "Close Tracks" : "Switch Career Track"}</span>
+            <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 text-[10px] font-bold">
+              {allRoadmaps.length} Tracks
+            </span>
+          </button>
+        )}
       </div>
 
       {errorMessage && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
-          {errorMessage}
+        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{errorMessage}</span>
         </div>
       )}
 
-      {/* If No Active Roadmap: Catalog to choose from */}
-      {!userRoadmap ? (
-        <div className="bg-[#101728] border border-slate-800/80 rounded-2xl p-8 text-center max-w-3xl mx-auto shadow-2xl">
-          <Compass className="w-12 h-12 text-indigo-400 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-white">Select Your Career Roadmap</h2>
-          <p className="text-sm text-slate-400 mt-2 max-w-md mx-auto">
-            Choose a target track to unlock sequenced learning milestones, prerequisite validation, and automated progress analytics.
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8 text-left">
-            {allRoadmaps.map((rm) => (
-              <div
-                key={rm._id}
-                className="p-5 rounded-xl bg-[#141d33] border border-slate-800 hover:border-indigo-500/40 transition-all flex flex-col justify-between"
+      {/* TRACK SWITCHER DRAWER / CATALOG */}
+      {(showTrackSwitcher || !userRoadmap) && (
+        <div className="bg-[#101728] border border-slate-800/80 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                <Layers className="w-5 h-5 text-indigo-400" />
+                <span>Available Career Tracks</span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Switching tracks saves your current progress. You can return anytime.
+              </p>
+            </div>
+            {userRoadmap && (
+              <button
+                onClick={() => setShowTrackSwitcher(false)}
+                className="text-xs text-slate-400 hover:text-white"
               >
-                <div>
-                  <h3 className="text-base font-bold text-white">{rm.title}</h3>
-                  <p className="text-xs text-slate-400 mt-1 line-clamp-2">
-                    {rm.description}
-                  </p>
-                </div>
-                <button
-                  onClick={() => handleStartRoadmap(rm._id)}
-                  className="mt-4 w-full py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                Done
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-left">
+            {allRoadmaps.map((rm) => {
+              const TrackIcon = getTrackIcon(rm.careerGoal);
+              const isActive = userRoadmap?.roadmap?._id === rm._id;
+              const itemsCount = rm.items?.length || 0;
+
+              return (
+                <div
+                  key={rm._id}
+                  className={`p-5 rounded-2xl border transition-all flex flex-col justify-between ${
+                    isActive
+                      ? "bg-indigo-600/15 border-indigo-500/40 shadow-lg shadow-indigo-950/20 ring-1 ring-indigo-500/30"
+                      : "bg-[#141d33] border-slate-800 hover:border-slate-700"
+                  }`}
                 >
-                  <span>Start This Roadmap</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ))}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                        <TrackIcon className="w-5 h-5" />
+                      </div>
+                      {isActive && (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+                          <Check className="w-3 h-3" />
+                          <span>Active</span>
+                        </span>
+                      )}
+                    </div>
+
+                    <div>
+                      <h3 className="text-sm font-bold text-white">{rm.title}</h3>
+                      <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                        {rm.description}
+                      </p>
+                    </div>
+
+                    {itemsCount > 0 && (
+                      <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium">
+                        <span>{itemsCount} Sequenced Milestones</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => handleStartRoadmap(rm._id)}
+                    disabled={isActive}
+                    className={`mt-4 w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      isActive
+                        ? "bg-slate-800 text-slate-400 cursor-default opacity-60"
+                        : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20"
+                    }`}
+                  >
+                    <span>{isActive ? "Currently Active Track" : "Switch to this Track"}</span>
+                    {!isActive && <ArrowRight className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
-      ) : (
-        /* Active Roadmap Visualizer */
+      )}
+
+      {/* ACTIVE ROADMAP VISUALIZER */}
+      {userRoadmap && (
         <div className="space-y-6">
           {/* Active Roadmap Banner */}
           <div className="bg-[#101728] border border-slate-800/80 rounded-2xl p-6 sm:p-7 shadow-xl">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-full border border-indigo-500/30">
-                  Active Career Roadmap
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-full border border-indigo-500/30">
+                    Active Career Track
+                  </span>
+                  <span className="text-xs text-slate-500 uppercase font-mono">
+                    {userRoadmap.roadmap?.careerGoal}
+                  </span>
+                </div>
                 <h2 className="text-2xl font-bold text-white mt-2">
                   {userRoadmap.roadmap?.title}
                 </h2>
@@ -196,9 +296,14 @@ export const RoadmapPage = () => {
 
           {/* Sequenced Milestones */}
           <div className="space-y-4">
-            <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider">
-              Sequenced Milestones & Topics
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Sequenced Milestones & Topics ({roadmapItems.length} Milestones)
+              </h3>
+              <span className="text-[11px] text-slate-500">
+                Locked milestones automatically unlock when prerequisites reach 100%
+              </span>
+            </div>
 
             <div className="grid grid-cols-1 gap-4">
               {roadmapItems.map((item, index) => {
@@ -207,7 +312,9 @@ export const RoadmapPage = () => {
                   progressPercent: 0,
                 };
                 const isCompleted = prog.status === "completed" || prog.progressPercent === 100;
-                const isInProgress = prog.status === "in-progress" || (prog.progressPercent > 0 && prog.progressPercent < 100);
+                const isInProgress =
+                  prog.status === "in-progress" ||
+                  (prog.progressPercent > 0 && prog.progressPercent < 100);
                 const isLocked = prog.status === "locked";
 
                 return (
@@ -218,6 +325,8 @@ export const RoadmapPage = () => {
                         ? "bg-[#101728]/80 border-emerald-500/30"
                         : isInProgress
                         ? "bg-[#121a30] border-indigo-500/40 shadow-lg shadow-indigo-950/20"
+                        : isLocked
+                        ? "bg-[#0d1322] border-slate-800/80 opacity-70"
                         : "bg-[#101728] border-slate-800"
                     }`}
                   >
@@ -230,10 +339,18 @@ export const RoadmapPage = () => {
                               ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
                               : isInProgress
                               ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/40"
-                              : "bg-slate-800 text-slate-400"
+                              : isLocked
+                              ? "bg-slate-800 text-slate-500"
+                              : "bg-slate-800 text-slate-300"
                           }`}
                         >
-                          {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : index + 1}
+                          {isCompleted ? (
+                            <CheckCircle2 className="w-5 h-5" />
+                          ) : isLocked ? (
+                            <Lock className="w-4 h-4" />
+                          ) : (
+                            index + 1
+                          )}
                         </div>
 
                         <div>
@@ -252,7 +369,13 @@ export const RoadmapPage = () => {
                                   : "bg-slate-800 text-slate-400 border-slate-700"
                               }`}
                             >
-                              {isCompleted ? "Completed" : isInProgress ? "In Progress" : isLocked ? "Locked" : "Not Started"}
+                              {isCompleted
+                                ? "Completed"
+                                : isInProgress
+                                ? "In Progress"
+                                : isLocked
+                                ? "Locked"
+                                : "Not Started"}
                             </span>
                           </div>
 
@@ -260,17 +383,23 @@ export const RoadmapPage = () => {
                             {item.description}
                           </p>
 
-                          {/* Skills & Est Hours */}
+                          {/* Prerequisites & Skills */}
                           <div className="flex items-center gap-3 mt-3 flex-wrap text-xs text-slate-500">
+                            {item.dependencies?.length > 0 && (
+                              <span className="flex items-center gap-1 text-[11px] text-amber-400/90 font-medium">
+                                <Lock className="w-3 h-3" />
+                                Requires: {item.dependencies.join(", ")}
+                              </span>
+                            )}
                             {item.estimatedHours && (
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3.5 h-3.5 text-slate-400" />
-                                {item.estimatedHours} hrs estimated
+                              <span className="flex items-center gap-1 font-mono text-[11px]">
+                                <Clock className="w-3.5 h-3.5 text-slate-500" />
+                                {item.estimatedHours} hrs est.
                               </span>
                             )}
                             {item.skills?.length > 0 && (
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <Boxes className="w-3.5 h-3.5 text-slate-400" />
+                                <Boxes className="w-3.5 h-3.5 text-slate-500" />
                                 {item.skills.map((s, idx) => (
                                   <span
                                     key={idx}
@@ -297,15 +426,15 @@ export const RoadmapPage = () => {
                         </button>
                         <button
                           onClick={() => handleUpdateProgress(item.key, 50)}
-                          disabled={updatingKey === item.key}
-                          className="px-3 py-1.5 rounded-lg bg-[#141d33] hover:bg-indigo-600/20 text-xs text-indigo-300 border border-slate-800 hover:border-indigo-500/40 transition-colors cursor-pointer"
+                          disabled={updatingKey === item.key || isLocked}
+                          className="px-3 py-1.5 rounded-lg bg-[#141d33] hover:bg-indigo-600/20 text-xs text-indigo-300 border border-slate-800 hover:border-indigo-500/40 transition-colors disabled:opacity-40 cursor-pointer"
                         >
                           In Progress (50%)
                         </button>
                         <button
                           onClick={() => handleUpdateProgress(item.key, 100)}
-                          disabled={updatingKey === item.key}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                          disabled={updatingKey === item.key || isLocked}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all disabled:opacity-40 cursor-pointer ${
                             isCompleted
                               ? "bg-emerald-600 text-white"
                               : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20"
