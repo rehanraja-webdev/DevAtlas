@@ -1,5 +1,7 @@
 import Roadmap from "../models/Roadmap.js";
 import UserRoadmap from "../models/UserRoadmap.js";
+import Quiz from "../models/Quiz.js";
+import Attempt from "../models/Attempt.js";
 import { createActivity } from "./activity.service.js";
 import { deleteCache } from "../utils/cache.js";
 import { roadmaps as defaultRoadmaps } from "../data/roadmaps.js";
@@ -154,6 +156,28 @@ export const updateRoadmapProgressService = async (
       progressItem.startedAt = new Date();
     }
   } else {
+    // Mastery Gate Check: If an assessment exists for this topic, require passing attempt >= passingScore
+    const quiz = await Quiz.findOne({ topicKey: itemKey });
+    if (quiz) {
+      const passedAttempt = await Attempt.findOne({
+        user: userId,
+        topicKey: itemKey,
+        type: "quiz",
+        passed: true,
+      }).sort({ score: -1 });
+
+      if (!passedAttempt || passedAttempt.score < (quiz.passingScore || 80)) {
+        const error = new Error(
+          `Mastery gate active: You must pass the ${quiz.title} with at least ${quiz.passingScore || 80}% score before completing this milestone.`,
+        );
+        error.statusCode = 403;
+        throw error;
+      }
+
+      progressItem.quizScore = passedAttempt.score;
+      progressItem.verifiedMastery = true;
+    }
+
     progressItem.status = "completed";
     progressItem.completedAt = new Date();
   }

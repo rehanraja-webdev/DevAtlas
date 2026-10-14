@@ -14,6 +14,7 @@ import reportRoutes from "./routes/report.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 import interviewRoutes from "./routes/interview.routes.js";
 import englishPracticeRoutes from "./routes/englishPractice.routes.js";
+import learningRoutes from "./routes/learning.routes.js";
 import { errorMiddleware } from "./middleware/error.middleware.js";
 
 const app = express();
@@ -44,6 +45,8 @@ app.use("/api/v1/report", reportRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
 app.use("/api/v1/interview", interviewRoutes);
 app.use("/api/v1/english-practice", englishPracticeRoutes);
+app.use("/api/v1/learning", learningRoutes);
+app.use("/api/v1", learningRoutes);
 
 app.use("/api/v1/test", testRoutes);
 app.get("/api/v1/health", (req, res) => {
