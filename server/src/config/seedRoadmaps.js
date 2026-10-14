@@ -7,21 +7,42 @@ import { roadmaps } from "../data/roadmaps.js";
 
 dotenv.config();
 
-const seedRoadmaps = async () => {
+export const seedRoadmaps = async () => {
   try {
     await connectDB();
 
-    await Roadmap.deleteMany();
+    console.log(`Starting roadmap seeding for ${roadmaps.length} tracks...`);
 
-    await Roadmap.insertMany(roadmaps);
+    for (const r of roadmaps) {
+      await Roadmap.findOneAndUpdate(
+        { careerGoal: r.careerGoal },
+        {
+          $set: {
+            title: r.title,
+            description: r.description,
+            items: r.items,
+            isPublished: true,
+          },
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true },
+      );
+      console.log(`✓ Synchronized roadmap: ${r.title} (${r.careerGoal})`);
+    }
 
-    console.log("Roadmaps seeded successfully");
+    console.log("All roadmaps seeded successfully");
 
-    await mongoose.connection.close();
+    if (process.argv[1]?.includes("seedRoadmaps")) {
+      await mongoose.connection.close();
+      process.exit(0);
+    }
   } catch (error) {
-    console.log("Roadmap seeding failed: ", error.message);
-    process.exit();
+    console.error("Roadmap seeding failed: ", error.message);
+    if (process.argv[1]?.includes("seedRoadmaps")) {
+      process.exit(1);
+    }
   }
 };
 
-seedRoadmaps();
+if (process.argv[1]?.includes("seedRoadmaps")) {
+  seedRoadmaps();
+}
