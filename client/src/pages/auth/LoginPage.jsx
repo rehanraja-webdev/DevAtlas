@@ -35,6 +35,16 @@ export const LoginPage = () => {
       <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-md bg-[#101728] border border-slate-800/80 rounded-2xl p-8 shadow-2xl relative z-10">
+        {/* Back Link */}
+        <div className="mb-6">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
+          >
+            <span>← Back to Home</span>
+          </Link>
+        </div>
+
         {/* Header */}
         <div className="text-center mb-8">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 mx-auto mb-4">
@@ -116,14 +126,24 @@ export const LoginPage = () => {
         </form>
 
         {/* Footer */}
-        <div className="mt-8 text-center text-xs text-slate-400 border-t border-slate-800/80 pt-4">
-          Don't have an account?{" "}
-          <Link
-            to="/register"
-            className="text-indigo-400 font-semibold hover:underline"
-          >
-            Create an account
-          </Link>
+        <div className="mt-8 text-center text-xs text-slate-400 border-t border-slate-800/80 pt-4 space-y-2">
+          <div>
+            Don't have an account?{" "}
+            <Link
+              to="/register"
+              className="text-indigo-400 font-semibold hover:underline"
+            >
+              Create an account
+            </Link>
+          </div>
+          <div>
+            <Link
+              to="/help"
+              className="text-slate-500 hover:text-slate-300 transition-colors"
+            >
+              Need help? Visit our Help & Support Center
+            </Link>
+          </div>
         </div>
       </div>
     </div>

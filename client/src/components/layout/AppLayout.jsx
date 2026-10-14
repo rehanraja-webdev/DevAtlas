@@ -20,6 +20,7 @@ import {
   ChevronRight,
   UserCheck,
   Languages,
+  HelpCircle,
 } from "lucide-react";
 
 const navigationItems = [
@@ -33,6 +34,7 @@ const navigationItems = [
   { name: "AI Mentor", to: "/mentor", icon: Bot, badge: "AI" },
   { name: "Activity", to: "/activity", icon: Activity },
   { name: "Settings", to: "/settings", icon: Settings },
+  { name: "Help & Docs", to: "/help", icon: HelpCircle },
 ];
 
 export const AppLayout = ({ children }) => {
@@ -162,6 +164,15 @@ export const AppLayout = ({ children }) => {
             >
               <Sparkles className="w-3.5 h-3.5 text-purple-400" />
               <span>AI Guidance</span>
+            </Link>
+
+            {/* Help & Support Button */}
+            <Link
+              to="/help"
+              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-[#141d33] transition-colors"
+              title="Help Center & Documentation"
+            >
+              <HelpCircle className="w-5 h-5" />
             </Link>
 
             {/* Notification Bell */}

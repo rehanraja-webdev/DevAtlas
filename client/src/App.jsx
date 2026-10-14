@@ -5,12 +5,22 @@ import { useAuthStore } from "./stores/authStore.js";
 
 // Layout & Route Guards
 import { AppLayout } from "./components/layout/AppLayout.jsx";
+import { PublicLayout } from "./components/public/PublicLayout.jsx";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute.jsx";
 import { PublicRoute } from "./components/auth/PublicRoute.jsx";
 
-// Pages
+// Public Marketing & Help Pages
+import { LandingPage } from "./pages/public/LandingPage.jsx";
+import { FeaturesPage } from "./pages/public/FeaturesPage.jsx";
+import { PublicRoadmapsPage } from "./pages/public/PublicRoadmapsPage.jsx";
+import { AboutPage } from "./pages/public/AboutPage.jsx";
+import { HelpPage } from "./pages/public/HelpPage.jsx";
+
+// Auth Pages
 import { LoginPage } from "./pages/auth/LoginPage.jsx";
 import { RegisterPage } from "./pages/auth/RegisterPage.jsx";
+
+// Authenticated Workspace Pages
 import { DashboardPage } from "./pages/dashboard/DashboardPage.jsx";
 import { DSAPage } from "./pages/dsa/DSAPage.jsx";
 import { RoadmapPage } from "./pages/roadmap/RoadmapPage.jsx";
@@ -42,6 +52,48 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
+          {/* Public Website & Information Pages */}
+          <Route
+            path="/"
+            element={
+              <PublicLayout>
+                <LandingPage />
+              </PublicLayout>
+            }
+          />
+          <Route
+            path="/features"
+            element={
+              <PublicLayout>
+                <FeaturesPage />
+              </PublicLayout>
+            }
+          />
+          <Route
+            path="/roadmaps"
+            element={
+              <PublicLayout>
+                <PublicRoadmapsPage />
+              </PublicLayout>
+            }
+          />
+          <Route
+            path="/about"
+            element={
+              <PublicLayout>
+                <AboutPage />
+              </PublicLayout>
+            }
+          />
+          <Route
+            path="/help"
+            element={
+              <PublicLayout>
+                <HelpPage />
+              </PublicLayout>
+            }
+          />
+
           {/* Public Auth Routes */}
           <Route
             path="/login"
@@ -171,9 +223,8 @@ function App() {
             }
           />
 
-          {/* Fallback & Root Navigation */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          {/* Fallback Navigation */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
