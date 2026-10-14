@@ -69,8 +69,6 @@ const exerciseSchema = new mongoose.Schema(
   },
 );
 
-exerciseSchema.index({ topicKey: 1 });
-
 const Exercise = mongoose.model("Exercise", exerciseSchema);
 
 export default Exercise;
