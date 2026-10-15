@@ -19,6 +19,7 @@ import {
   Check,
   ChevronRight,
   ExternalLink,
+  ShieldCheck,
 } from "lucide-react";
 
 export const LessonPlayerModal = ({

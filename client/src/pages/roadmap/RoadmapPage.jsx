@@ -459,44 +459,40 @@ export const RoadmapPage = () => {
 
                       {/* Right: Actions */}
                       <div className="flex items-center gap-2 shrink-0 self-end md:self-auto flex-wrap">
-                        {/* Open Lesson & Quiz Button */}
                         <button
                           onClick={() => setActiveLessonModal({ topicKey: item.key, title: item.title })}
                           disabled={isLocked}
-                          className="px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
-                        >
-                          <BookOpen className="w-3.5 h-3.5" />
-                          <span>{isMastered ? "Review Lesson" : "Lesson & Quiz"}</span>
-                        </button>
-
-                        <button
-                          onClick={() => handleUpdateProgress(item.key, 0, item.title)}
-                          disabled={updatingKey === item.key || prog.progressPercent === 0}
-                          className="px-2.5 py-1.5 rounded-lg bg-[#141d33] hover:bg-slate-800 text-xs text-slate-400 border border-slate-800 disabled:opacity-30 cursor-pointer"
-                          title="Reset status"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                        </button>
-
-                        <button
-                          onClick={() => handleUpdateProgress(item.key, 50, item.title)}
-                          disabled={updatingKey === item.key || isLocked}
-                          className="px-3 py-1.5 rounded-lg bg-[#141d33] hover:bg-indigo-600/20 text-xs text-indigo-300 border border-slate-800 hover:border-indigo-500/40 transition-colors disabled:opacity-40 cursor-pointer"
-                        >
-                          In Progress (50%)
-                        </button>
-
-                        <button
-                          onClick={() => handleUpdateProgress(item.key, 100, item.title)}
-                          disabled={updatingKey === item.key || isLocked}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all disabled:opacity-40 cursor-pointer ${
-                            isCompleted
-                              ? "bg-emerald-600 text-white"
+                          className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                            isMastered
+                              ? "bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40"
+                              : isInProgress
+                              ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-md shadow-indigo-600/20"
+                              : isLocked
+                              ? "bg-slate-800 text-slate-500 border border-slate-700/50"
                               : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20"
                           }`}
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>{isCompleted ? "Completed" : "Complete (100%)"}</span>
+                          {isLocked ? (
+                            <>
+                              <Lock className="w-3.5 h-3.5" />
+                              <span>Prerequisites Required</span>
+                            </>
+                          ) : isMastered ? (
+                            <>
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                              <span>Review Lesson & Quiz</span>
+                            </>
+                          ) : isInProgress ? (
+                            <>
+                              <Sparkles className="w-3.5 h-3.5" />
+                              <span>Continue Lesson & Quiz</span>
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-3.5 h-3.5" />
+                              <span>Start Lesson & Assessment</span>
+                            </>
+                          )}
                         </button>
                       </div>
                     </div>
