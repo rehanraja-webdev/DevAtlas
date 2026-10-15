@@ -183,4 +183,31 @@ This document outlines the systematic implementation roadmap for the DevAtlas pl
   - Integrated 5 complete, industry-standard career roadmaps: Full Stack MERN, Frontend Architect, Backend Microservices, AI Systems Engineer, and Core Software Engineer.
   - Added in-workspace Career Track Switcher in `RoadmapPage.jsx` allowing developers to switch between active roadmaps seamlessly.
 
+---
+
+## Phase 9: Verified Learning Platform & Mastery Gating System (PDF Specification)
+- [x] **Task 9.1: Verified Learning Data Models (`Lesson.js`, `Quiz.js`, `Exercise.js`, `Attempt.js`, `UserRoadmap.js`, `Activity.js`)**
+  - Designed Mongoose schemas for structured learning entities according to the 13-page Verified Learning specification.
+  - Added indexes on `(user, quizId)` and `(user, exerciseId)` for rapid historical attempt queries and anti-cheat tracking.
+  - Extended `UserRoadmap.js` milestone items with `verifiedMastery`, `quizScore`, and `exercisePassed`.
+  - Added learning audit event types (`lesson_viewed`, `quiz_attempted`, `exercise_submitted`) to `Activity.js`.
+- [x] **Task 9.2: Initial Seed Curriculum (`learningContent.js`, `seedLearning.js`)**
+  - Prepared production-ready learning content for core roadmap topics (`javascript`, `react`, `nodejs`, `express`, `mongodb`, `authentication`).
+  - Included structured Markdown lessons, embedded YouTube deep-dive tutorials, auto-graded MCQ mastery quizzes with explanations, and real JavaScript code exercises with unit test assertions.
+  - Seeded into MongoDB database with cross-referenced object IDs.
+- [x] **Task 9.3: Server-Side Grading Engine & Anti-Cheat Pipeline (`learning.service.js`, `learning.controller.js`, `learning.routes.js`)**
+  - Implemented strict anti-cheat: `Quiz.js` and `getLessonDetailsService` project out `-questions.correctAnswer` so answers are never exposed to the client.
+  - Built server-side evaluation engine calculating percentage score against an 80% passing threshold.
+  - Built isolated Node.js `vm` sandbox for code challenges executing user code against test inputs with timeout protection (1500ms).
+  - Enforced server-side mastery gating in `roadmap.service.js`: attempts to manually mark a milestone as 100% complete without passing the mastery quiz fail with HTTP 403.
+  - Connected endpoints: `GET /api/v1/learning/lessons`, `GET /api/v1/learning/topic/:topicKey/status`, `POST /api/v1/learning/lessons/:id/complete`, `POST /api/v1/learning/quizzes/:id/attempts`, `POST /api/v1/learning/exercises/:id/submissions`, `GET /api/v1/learning/analytics/progress`.
+- [x] **Task 9.4: Interactive In-Page Lesson Player & Mastery Modal (`LessonPlayerModal.jsx`, `RoadmapPage.jsx`)**
+  - Built `LessonPlayerModal.jsx` featuring 4 synchronized learning tabs:
+    - **Interactive Lesson**: Structured guide, YouTube video player, and "Mark Lesson Read & Verified" duration tracking.
+    - **Mastery Quiz Gate**: Multi-question MCQ runner with live submission, server evaluation, pass/fail badges, and detailed question-by-question explanations.
+    - **Code Challenge**: In-browser code editor with template code, reset, and live server-side test suite results (Passed/Failed per test assertion).
+    - **Audit History**: Transparent log of all attempts, scores, and dates.
+  - Enhanced `RoadmapPage.jsx` with "Study & Verify" action buttons, verified mastery checkmarks, quiz score badges, and guided 403 error handling that redirects users directly to the assessment gate.
+
+
 

@@ -19,7 +19,11 @@ import {
   ChevronRight,
   Check,
   AlertCircle,
+  Award,
+  ShieldCheck,
+  HelpCircle,
 } from "lucide-react";
+import { LessonPlayerModal } from "../../components/learning/LessonPlayerModal.jsx";
 
 export const RoadmapPage = () => {
   const [userRoadmap, setUserRoadmap] = useState(null);
@@ -28,6 +32,7 @@ export const RoadmapPage = () => {
   const [updatingKey, setUpdatingKey] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [showTrackSwitcher, setShowTrackSwitcher] = useState(false);
+  const [activeLessonModal, setActiveLessonModal] = useState(null); // { topicKey, title }
 
   const fetchData = async () => {
     try {
@@ -74,7 +79,7 @@ export const RoadmapPage = () => {
     }
   };
 
-  const handleUpdateProgress = async (itemKey, percent) => {
+  const handleUpdateProgress = async (itemKey, percent, itemTitle) => {
     try {
       setUpdatingKey(itemKey);
       setErrorMessage("");
@@ -91,12 +96,20 @@ export const RoadmapPage = () => {
         overallProgress: updatedOverall ?? prev.overallProgress,
       }));
     } catch (err) {
-      setErrorMessage(
-        err.response?.data?.message || "Could not update topic progress.",
-      );
+      const msg = err.response?.data?.message || "Could not update topic progress.";
+      setErrorMessage(msg);
+
+      // If mastery gate triggered, guide user to the assessment
+      if (err.response?.status === 403 && itemTitle) {
+        setActiveLessonModal({ topicKey: itemKey, title: itemTitle });
+      }
     } finally {
       setUpdatingKey(null);
     }
+  };
+
+  const handleMasteryAchieved = async (topicKey, score) => {
+    await fetchData();
   };
 
   if (loading && !userRoadmap && allRoadmaps.length === 0) {
@@ -131,15 +144,32 @@ export const RoadmapPage = () => {
 
   return (
     <div className="space-y-8">
+      {/* Verified Learning & Assessment Modal */}
+      {activeLessonModal && (
+        <LessonPlayerModal
+          topicKey={activeLessonModal.topicKey}
+          milestoneTitle={activeLessonModal.title}
+          isOpen={Boolean(activeLessonModal)}
+          onClose={() => setActiveLessonModal(null)}
+          onMasteryAchieved={handleMasteryAchieved}
+        />
+      )}
+
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-3">
-            <Compass className="w-7 h-7 text-indigo-400" />
-            <span>Learning Roadmap</span>
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-3">
+              <Compass className="w-7 h-7 text-indigo-400" />
+              <span>Verified Learning Roadmap</span>
+            </h1>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+              <ShieldCheck className="w-3 h-3" />
+              <span>Gated Mastery Engine</span>
+            </span>
+          </div>
           <p className="text-sm text-slate-400 mt-1">
-            Structured career milestones with prerequisite sequencing, topic mastery, and skill telemetry.
+            Structured career milestones with interactive lessons, anti-cheat assessments (≥80% mastery threshold), and verified telemetry.
           </p>
         </div>
 
@@ -158,9 +188,11 @@ export const RoadmapPage = () => {
       </div>
 
       {errorMessage && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{errorMessage}</span>
+        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
         </div>
       )}
 
@@ -274,7 +306,7 @@ export const RoadmapPage = () => {
               {/* Progress Gauge */}
               <div className="bg-[#141d33] border border-slate-800 rounded-xl p-4 flex items-center gap-4 shrink-0">
                 <div className="text-right">
-                  <span className="text-xs text-slate-400">Total Completion</span>
+                  <span className="text-xs text-slate-400">Verified Completion</span>
                   <p className="text-2xl font-extrabold text-white">
                     {userRoadmap.overallProgress ?? 0}%
                   </p>
@@ -298,10 +330,10 @@ export const RoadmapPage = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                Sequenced Milestones & Topics ({roadmapItems.length} Milestones)
+                Sequenced Milestones & Assessments ({roadmapItems.length} Milestones)
               </h3>
               <span className="text-[11px] text-slate-500">
-                Locked milestones automatically unlock when prerequisites reach 100%
+                Locked milestones automatically unlock when prerequisites reach 100% verified mastery
               </span>
             </div>
 
@@ -310,12 +342,15 @@ export const RoadmapPage = () => {
                 const prog = progressMap[item.key] || {
                   status: "not-started",
                   progressPercent: 0,
+                  verifiedMastery: false,
+                  quizScore: null,
                 };
                 const isCompleted = prog.status === "completed" || prog.progressPercent === 100;
                 const isInProgress =
                   prog.status === "in-progress" ||
                   (prog.progressPercent > 0 && prog.progressPercent < 100);
                 const isLocked = prog.status === "locked";
+                const isMastered = prog.verifiedMastery || (prog.quizScore && prog.quizScore >= 80);
 
                 return (
                   <div
@@ -358,6 +393,7 @@ export const RoadmapPage = () => {
                             <h4 className="text-base font-bold text-white">
                               {item.title}
                             </h4>
+
                             <span
                               className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
                                 isCompleted
@@ -377,6 +413,13 @@ export const RoadmapPage = () => {
                                 ? "Locked"
                                 : "Not Started"}
                             </span>
+
+                            {isMastered && (
+                              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                                <Award className="w-3 h-3 text-emerald-400" />
+                                <span>Verified Mastery ({prog.quizScore || 80}%)</span>
+                              </span>
+                            )}
                           </div>
 
                           <p className="text-xs text-slate-400 mt-1 max-w-xl">
@@ -415,24 +458,36 @@ export const RoadmapPage = () => {
                       </div>
 
                       {/* Right: Actions */}
-                      <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
+                      <div className="flex items-center gap-2 shrink-0 self-end md:self-auto flex-wrap">
+                        {/* Open Lesson & Quiz Button */}
                         <button
-                          onClick={() => handleUpdateProgress(item.key, 0)}
+                          onClick={() => setActiveLessonModal({ topicKey: item.key, title: item.title })}
+                          disabled={isLocked}
+                          className="px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+                        >
+                          <BookOpen className="w-3.5 h-3.5" />
+                          <span>{isMastered ? "Review Lesson" : "Lesson & Quiz"}</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleUpdateProgress(item.key, 0, item.title)}
                           disabled={updatingKey === item.key || prog.progressPercent === 0}
                           className="px-2.5 py-1.5 rounded-lg bg-[#141d33] hover:bg-slate-800 text-xs text-slate-400 border border-slate-800 disabled:opacity-30 cursor-pointer"
                           title="Reset status"
                         >
                           <RotateCcw className="w-3.5 h-3.5" />
                         </button>
+
                         <button
-                          onClick={() => handleUpdateProgress(item.key, 50)}
+                          onClick={() => handleUpdateProgress(item.key, 50, item.title)}
                           disabled={updatingKey === item.key || isLocked}
                           className="px-3 py-1.5 rounded-lg bg-[#141d33] hover:bg-indigo-600/20 text-xs text-indigo-300 border border-slate-800 hover:border-indigo-500/40 transition-colors disabled:opacity-40 cursor-pointer"
                         >
                           In Progress (50%)
                         </button>
+
                         <button
-                          onClick={() => handleUpdateProgress(item.key, 100)}
+                          onClick={() => handleUpdateProgress(item.key, 100, item.title)}
                           disabled={updatingKey === item.key || isLocked}
                           className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all disabled:opacity-40 cursor-pointer ${
                             isCompleted
@@ -441,7 +496,7 @@ export const RoadmapPage = () => {
                           }`}
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>{isCompleted ? "Completed" : "Mark 100%"}</span>
+                          <span>{isCompleted ? "Completed" : "Complete (100%)"}</span>
                         </button>
                       </div>
                     </div>
