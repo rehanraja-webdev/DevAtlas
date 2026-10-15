@@ -207,7 +207,12 @@ This document outlines the systematic implementation roadmap for the DevAtlas pl
     - **Mastery Quiz Gate**: Multi-question MCQ runner with live submission, server evaluation, pass/fail badges, and detailed question-by-question explanations.
     - **Code Challenge**: In-browser code editor with template code, reset, and live server-side test suite results (Passed/Failed per test assertion).
     - **Audit History**: Transparent log of all attempts, scores, and dates.
-  - Enhanced `RoadmapPage.jsx` with "Study & Verify" action buttons, verified mastery checkmarks, quiz score badges, and guided 403 error handling that redirects users directly to the assessment gate.
+- [x] **Task 9.5: Automated Server Progress Calculation & Universal Topic Auto-Provisioning (`roadmap.service.js`, `learning.service.js`, `curriculumGenerator.js`)**
+  - Implemented `recalculateUserRoadmapProgress` in `roadmap.service.js` strictly computing `overallProgress` from verified, server-audited `Attempt` records where `passed = true`.
+  - Stripped out manual client-side 50%/100%/reset progress buttons, ensuring users cannot forge progress without passing assessments.
+  - Automatically revoke any unverified completions on `getMyRoadmapService` and recalculate progress percentages and dependency unlock states dynamically.
+  - Built `curriculumGenerator.js` and `ensureTopicCurriculum` so all 38 topics across all 5 career roadmaps have structured lessons, video embeds, and 4-question mastery quizzes with server-side evaluation.
+
 
 
 

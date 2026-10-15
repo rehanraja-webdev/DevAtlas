@@ -77,6 +77,113 @@ export const startRoadmapService = async (userId, roadmapId) => {
   return await userRoadmap.populate("roadmap", "title careerGoal description items");
 };
 
+/**
+ * Recalculate user roadmap progress strictly based on server-verified assessment attempts.
+ * Eliminates client tampering by auditing passed attempts and re-evaluating dependency chains.
+ */
+export const recalculateUserRoadmapProgress = async (userRoadmap, userId) => {
+  if (!userRoadmap || !userRoadmap.progress || userRoadmap.progress.length === 0) {
+    return userRoadmap;
+  }
+
+  // Fetch all genuinely passed attempts for this user
+  const passedAttempts = await Attempt.find({
+    user: userId,
+    passed: true,
+  }).select("topicKey score type createdAt");
+
+  const passedMap = new Map();
+  passedAttempts.forEach((att) => {
+    const existing = passedMap.get(att.topicKey);
+    if (!existing || att.score > existing.score) {
+      passedMap.set(att.topicKey, att);
+    }
+  });
+
+  let changed = false;
+
+  // 1. Audit milestone completion against real passed attempts
+  userRoadmap.progress.forEach((pItem) => {
+    const bestPassed = passedMap.get(pItem.itemKey);
+    if (bestPassed) {
+      if (!pItem.verifiedMastery || pItem.status !== "completed" || pItem.progressPercent !== 100) {
+        pItem.verifiedMastery = true;
+        pItem.quizScore = bestPassed.score;
+        pItem.status = "completed";
+        pItem.progressPercent = 100;
+        if (!pItem.completedAt) pItem.completedAt = bestPassed.createdAt || new Date();
+        changed = true;
+      }
+    } else {
+      // No passed attempt exists for this topic! Revoke any unverified completion.
+      if (pItem.verifiedMastery || pItem.status === "completed" || pItem.progressPercent === 100) {
+        pItem.verifiedMastery = false;
+        pItem.status = pItem.progressPercent > 0 ? "in-progress" : "not-started";
+        pItem.progressPercent = pItem.progressPercent === 100 ? 40 : pItem.progressPercent;
+        pItem.completedAt = null;
+        changed = true;
+      }
+    }
+  });
+
+  // 2. Re-evaluate dependency unlock chains
+  if (userRoadmap.roadmap && userRoadmap.roadmap.items) {
+    userRoadmap.progress.forEach((pItem) => {
+      // Completed items don't re-lock
+      if (pItem.verifiedMastery || pItem.status === "completed") return;
+
+      const rItem = userRoadmap.roadmap.items.find((i) => i.key === pItem.itemKey);
+      if (rItem && rItem.dependencies?.length > 0) {
+        const allDepsMet = rItem.dependencies.every((depKey) => {
+          const depProg = userRoadmap.progress.find((p) => p.itemKey === depKey);
+          return depProg && (depProg.status === "completed" || depProg.verifiedMastery === true);
+        });
+
+        if (allDepsMet && pItem.status === "locked") {
+          pItem.status = "not-started";
+          changed = true;
+        } else if (!allDepsMet && pItem.status !== "locked") {
+          pItem.status = "locked";
+          pItem.progressPercent = 0;
+          changed = true;
+        }
+      } else if ((!rItem || !rItem.dependencies || rItem.dependencies.length === 0) && pItem.status === "locked") {
+        pItem.status = "not-started";
+        changed = true;
+      }
+    });
+  }
+
+  // 3. Strictly calculate overall progress from genuine milestone completions
+  const completedCount = userRoadmap.progress.filter(
+    (item) => item.status === "completed" || item.verifiedMastery === true,
+  ).length;
+
+  const inProgressSum = userRoadmap.progress
+    .filter((item) => item.status === "in-progress" && !item.verifiedMastery)
+    .reduce((acc, curr) => acc + (curr.progressPercent || 0), 0);
+
+  const totalItems = userRoadmap.progress.length || 1;
+  const calculatedOverall = Math.min(
+    100,
+    Math.round(
+      ((completedCount * 100 + inProgressSum) / (totalItems * 100)) * 100,
+    ),
+  );
+
+  if (userRoadmap.overallProgress !== calculatedOverall) {
+    userRoadmap.overallProgress = calculatedOverall;
+    changed = true;
+  }
+
+  if (changed) {
+    userRoadmap.updatedAt = new Date();
+    await userRoadmap.save();
+  }
+
+  return userRoadmap;
+};
+
 export const getMyRoadmapService = async (userId) => {
   // Sort by updatedAt desc to always fetch the most recently active roadmap for the user
   const userRoadmap = await UserRoadmap.findOne({
@@ -89,6 +196,9 @@ export const getMyRoadmapService = async (userId) => {
   if (!userRoadmap) {
     return null;
   }
+
+  // Audit and recalculate progress directly from verified attempts
+  await recalculateUserRoadmapProgress(userRoadmap, userId);
 
   return userRoadmap;
 };
@@ -131,7 +241,7 @@ export const updateRoadmapProgressService = async (
         const depProg = userRoadmap.progress.find(
           (item) => item.itemKey === depKey,
         );
-        return depProg?.status === "completed" || depProg?.progressPercent === 100;
+        return depProg?.status === "completed" || depProg?.verifiedMastery === true;
       },
     );
 
@@ -140,80 +250,55 @@ export const updateRoadmapProgressService = async (
     }
   }
 
-  progressItem.progressPercent = progressPercent;
+  if (progressPercent >= 100) {
+    // Mastery Gate Check: Enforce server-side passed attempt before completion
+    const passedAttempt = await Attempt.findOne({
+      user: userId,
+      topicKey: itemKey,
+      type: "quiz",
+      passed: true,
+    }).sort({ score: -1 });
 
-  if (progressPercent === 0) {
-    const allDepsMet =
-      !roadmapItem.dependencies?.length ||
-      roadmapItem.dependencies.every((depKey) => {
-        const depProg = userRoadmap.progress.find((p) => p.itemKey === depKey);
-        return depProg?.status === "completed" || depProg?.progressPercent === 100;
-      });
-    progressItem.status = allDepsMet ? "not-started" : "locked";
-  } else if (progressPercent < 100) {
+    if (!passedAttempt || passedAttempt.score < 80) {
+      const error = new Error(
+        `Mastery gate active: You cannot mark "${roadmapItem.title}" complete without passing the verified mastery quiz (≥80%) on the server.`,
+      );
+      error.statusCode = 403;
+      throw error;
+    }
+
+    progressItem.progressPercent = 100;
+    progressItem.status = "completed";
+    progressItem.verifiedMastery = true;
+    progressItem.quizScore = passedAttempt.score;
+    progressItem.completedAt = new Date();
+  } else if (progressPercent > 0) {
+    // Mark as in-progress (e.g., lesson viewed/started)
+    progressItem.progressPercent = Math.min(40, progressPercent);
     progressItem.status = "in-progress";
     if (!progressItem.startedAt) {
       progressItem.startedAt = new Date();
     }
   } else {
-    // Mastery Gate Check: If an assessment exists for this topic, require passing attempt >= passingScore
-    const quiz = await Quiz.findOne({ topicKey: itemKey });
-    if (quiz) {
-      const passedAttempt = await Attempt.findOne({
-        user: userId,
-        topicKey: itemKey,
-        type: "quiz",
-        passed: true,
-      }).sort({ score: -1 });
-
-      if (!passedAttempt || passedAttempt.score < (quiz.passingScore || 80)) {
-        const error = new Error(
-          `Mastery gate active: You must pass the ${quiz.title} with at least ${quiz.passingScore || 80}% score before completing this milestone.`,
-        );
-        error.statusCode = 403;
-        throw error;
-      }
-
-      progressItem.quizScore = passedAttempt.score;
-      progressItem.verifiedMastery = true;
-    }
-
-    progressItem.status = "completed";
-    progressItem.completedAt = new Date();
+    // Reset to not-started (or locked if prerequisites not satisfied)
+    const allDepsMet =
+      !roadmapItem.dependencies?.length ||
+      roadmapItem.dependencies.every((depKey) => {
+        const depProg = userRoadmap.progress.find((p) => p.itemKey === depKey);
+        return depProg?.status === "completed" || depProg?.verifiedMastery === true;
+      });
+    progressItem.progressPercent = 0;
+    progressItem.status = allDepsMet ? "not-started" : "locked";
   }
 
-  // Auto-unlock downstream milestones whose dependencies are now fully satisfied
-  userRoadmap.progress.forEach((pItem) => {
-    if (pItem.status === "locked") {
-      const rItem = userRoadmap.roadmap.items.find((i) => i.key === pItem.itemKey);
-      if (rItem && rItem.dependencies?.length > 0) {
-        const allMet = rItem.dependencies.every((depKey) => {
-          const dProg = userRoadmap.progress.find((p) => p.itemKey === depKey);
-          return dProg?.status === "completed" || dProg?.progressPercent === 100;
-        });
-        if (allMet) {
-          pItem.status = "not-started";
-        }
-      }
-    }
-  });
-
-  const completedCount = userRoadmap.progress.filter(
-    (item) => item.status === "completed" || item.progressPercent === 100,
-  ).length;
-
-  userRoadmap.overallProgress = Math.round(
-    (completedCount / userRoadmap.progress.length) * 100,
-  );
-
-  userRoadmap.updatedAt = new Date();
-  await userRoadmap.save();
+  // Recalculate full roadmap progress & unlock states
+  await recalculateUserRoadmapProgress(userRoadmap, userId);
 
   const type =
-    progressPercent === 100 ? "roadmap_completed" : "roadmap_updated";
+    progressItem.progressPercent === 100 ? "roadmap_completed" : "roadmap_updated";
 
   await createActivity(userId, type, "roadmap", userRoadmap._id, {
-    completionPercentage: progressPercent,
+    completionPercentage: progressItem.progressPercent,
     lastUpdate: new Date(),
   });
 

@@ -7,6 +7,38 @@ import Attempt from "../models/Attempt.js";
 import UserRoadmap from "../models/UserRoadmap.js";
 import { createActivity } from "./activity.service.js";
 import { deleteCache } from "../utils/cache.js";
+import { generateCurriculumForTopic } from "../data/curriculumGenerator.js";
+import { recalculateUserRoadmapProgress } from "./roadmap.service.js";
+
+/**
+ * Ensures a roadmap milestone has a verified curriculum and assessment in the database
+ */
+export const ensureTopicCurriculum = async (topicKey) => {
+  if (!topicKey) return null;
+
+  let lesson = await Lesson.findOne({ topicKey });
+  if (lesson) return lesson;
+
+  const curriculum = generateCurriculumForTopic(topicKey);
+  if (!curriculum) return null;
+
+  const quiz = await Quiz.create({
+    topicKey: curriculum.quiz.topicKey,
+    title: curriculum.quiz.title,
+    questions: curriculum.quiz.questions,
+    passingScore: curriculum.quiz.passingScore || 80,
+  });
+
+  lesson = await Lesson.create({
+    ...curriculum.lesson,
+    quizId: quiz._id,
+  });
+
+  quiz.lessonId = lesson._id;
+  await quiz.save();
+
+  return lesson;
+};
 
 /**
  * Fetch all published lessons, optionally filtered by topicKey
@@ -33,7 +65,17 @@ export const getLessonDetailsService = async (identifier) => {
     query = { topicKey: identifier };
   }
 
-  const lesson = await Lesson.findOne(query)
+  let lesson = await Lesson.findOne(query);
+
+  if (!lesson && !mongoose.Types.ObjectId.isValid(identifier)) {
+    lesson = await ensureTopicCurriculum(identifier);
+  }
+
+  if (!lesson) {
+    throw new Error("Lesson not found");
+  }
+
+  return await Lesson.findById(lesson._id)
     .populate({
       path: "quizId",
       select: "-questions.correctAnswer", // NEVER leak answers to client
@@ -42,12 +84,6 @@ export const getLessonDetailsService = async (identifier) => {
       path: "exerciseId",
       select: "-solutionCode", // NEVER leak solution to client
     });
-
-  if (!lesson) {
-    throw new Error("Lesson not found");
-  }
-
-  return lesson;
 };
 
 /**
@@ -61,7 +97,12 @@ export const getQuizService = async (identifier) => {
     query = { topicKey: identifier };
   }
 
-  const quiz = await Quiz.findOne(query).select("-questions.correctAnswer");
+  let quiz = await Quiz.findOne(query).select("-questions.correctAnswer");
+
+  if (!quiz && !mongoose.Types.ObjectId.isValid(identifier)) {
+    await ensureTopicCurriculum(identifier);
+    quiz = await Quiz.findOne(query).select("-questions.correctAnswer");
+  }
 
   if (!quiz) {
     throw new Error("Quiz not found");
@@ -161,35 +202,11 @@ export const submitQuizAttemptService = async (
         pItem.status = "completed";
         pItem.completedAt = new Date();
         pItem.lastAttemptAt = new Date();
-
-        // Unlock dependent downstream milestones
-        userRoadmap.progress.forEach((targetItem) => {
-          if (targetItem.status === "locked") {
-            const rItem = userRoadmap.roadmap.items.find((i) => i.key === targetItem.itemKey);
-            if (rItem && rItem.dependencies?.length > 0) {
-              const allMet = rItem.dependencies.every((depKey) => {
-                const dProg = userRoadmap.progress.find((p) => p.itemKey === depKey);
-                return dProg?.status === "completed" || dProg?.verifiedMastery === true;
-              });
-              if (allMet) {
-                targetItem.status = "not-started";
-              }
-            }
-          }
-        });
-
-        const completedCount = userRoadmap.progress.filter(
-          (p) => p.status === "completed" || p.verifiedMastery === true,
-        ).length;
-
-        userRoadmap.overallProgress = Math.round(
-          (completedCount / userRoadmap.progress.length) * 100,
-        );
-        userRoadmap.updatedAt = new Date();
-        await userRoadmap.save();
-        roadmapUpdated = true;
-        await deleteCache(`analytics:overview:${userId}`);
       }
+
+      await recalculateUserRoadmapProgress(userRoadmap, userId);
+      roadmapUpdated = true;
+      await deleteCache(`analytics:overview:${userId}`);
     }
   }
 
