@@ -8,7 +8,9 @@
     "start": "node src/server.js",
     "seed:problems": "node src/config/seedProblems.js",
     "seed:roadmaps": "node src/config/seedRoadmaps.js",
-    "seed:learning": "node src/config/seedLearning.js"
+    "seed:learning": "node src/config/seedLearning.js",
+    "seed:curriculum": "node src/config/seedBlueprintCurriculum.js",
+    "test": "node --test test/*.test.js"
   },
   "keywords": [],
   "author": "",
