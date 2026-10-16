@@ -33,14 +33,18 @@ export const RoadmapPage = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [showTrackSwitcher, setShowTrackSwitcher] = useState(false);
   const [activeLessonModal, setActiveLessonModal] = useState(null); // { topicKey, title }
+  const [nextAction, setNextAction] = useState(null);
+  const [dueReviews, setDueReviews] = useState([]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       setErrorMessage("");
-      const [myRes, allRes] = await Promise.allSettled([
+      const [myRes, allRes, nextRes, reviewsRes] = await Promise.allSettled([
         api.get("/roadmaps/my-roadmap"),
         api.get("/roadmaps"),
+        api.get("/learning/next"),
+        api.get("/learning/review-queue"),
       ]);
 
       if (myRes.status === "fulfilled" && myRes.value.data?.data?.roadmap) {
@@ -51,6 +55,20 @@ export const RoadmapPage = () => {
 
       if (allRes.status === "fulfilled") {
         setAllRoadmaps(allRes.value.data?.data?.roadmaps || []);
+      }
+
+      if (
+        nextRes.status === "fulfilled" &&
+        nextRes.value.data?.data?.nextAction
+      ) {
+        setNextAction(nextRes.value.data.data.nextAction);
+      }
+
+      if (
+        reviewsRes.status === "fulfilled" &&
+        reviewsRes.value.data?.data?.dueReviews
+      ) {
+        setDueReviews(reviewsRes.value.data.data.dueReviews);
       }
     } catch (err) {
       console.error("Failed to load roadmap data", err);
@@ -193,6 +211,85 @@ export const RoadmapPage = () => {
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMessage}</span>
           </div>
+        </div>
+      )}
+
+      {/* RETENTION REVIEW ALERT IF DUE */}
+      {dueReviews.length > 0 && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-amber-500/20 text-amber-300 shrink-0 mt-0.5">
+              <RotateCcw className="w-5 h-5 animate-spin-slow" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
+                  Spaced Retention Due
+                </span>
+                <span className="text-[10px] px-2 py-0.2 rounded-full bg-amber-500/20 text-amber-300 font-mono">
+                  {dueReviews.length} item(s) due
+                </span>
+              </div>
+              <h3 className="text-sm font-bold text-white mt-0.5">
+                {dueReviews[0].skillName} Recall Checkpoint
+              </h3>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Scheduled spaced repetition interval reached. Complete a 3-minute retrieval check to cement this skill into permanent memory.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() =>
+              setActiveLessonModal({
+                topicKey: dueReviews[0].skillKey,
+                title: `${dueReviews[0].skillName} Retention Review`,
+              })
+            }
+            className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold shrink-0 cursor-pointer shadow-md transition-all self-start sm:self-auto"
+          >
+            Start Retention Review
+          </button>
+        </div>
+      )}
+
+      {/* ADAPTIVE NEXT BEST ACTION HERO BANNER */}
+      {nextAction && (
+        <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-indigo-950/60 via-[#121a30] to-[#101728] border border-indigo-500/30 flex flex-col md:flex-row md:items-center justify-between gap-5 shadow-xl">
+          <div className="space-y-1 max-w-2xl">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/15 px-2.5 py-0.5 rounded-full border border-indigo-500/30 flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-indigo-400" />
+                <span>Adaptive Recommendation</span>
+              </span>
+              {nextAction.estimatedMinutes && (
+                <span className="text-[11px] text-slate-400 font-mono flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-slate-500" />
+                  {nextAction.estimatedMinutes} mins est.
+                </span>
+              )}
+            </div>
+            <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
+              {nextAction.title}
+            </h3>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              {nextAction.reason}
+            </p>
+          </div>
+
+          {nextAction.topicKey && nextAction.topicKey !== "general" && (
+            <button
+              onClick={() =>
+                setActiveLessonModal({
+                  topicKey: nextAction.topicKey,
+                  title: nextAction.title,
+                })
+              }
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/25 shrink-0 self-start md:self-auto cursor-pointer transition-all"
+            >
+              <span>Start Recommended Unit</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          )}
         </div>
       )}
 

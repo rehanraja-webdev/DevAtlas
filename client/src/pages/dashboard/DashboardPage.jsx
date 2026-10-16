@@ -23,18 +23,20 @@ export const DashboardPage = () => {
   const [activities, setActivities] = useState([]);
   const [guidance, setGuidance] = useState(null);
   const [activityTrend, setActivityTrend] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [adaptiveAction, setAdaptiveAction] = useState(null);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const [overviewRes, activityRes, guidanceRes, trendRes] = await Promise.allSettled([
-          api.get("/analytics/overview"),
-          api.get("/activities"),
-          api.get("/report/guidance"),
-          api.get("/analytics/activity?days=7"),
-        ]);
+        const [overviewRes, activityRes, guidanceRes, trendRes, nextActionRes] =
+          await Promise.allSettled([
+            api.get("/analytics/overview"),
+            api.get("/activities"),
+            api.get("/report/guidance"),
+            api.get("/analytics/activity?days=7"),
+            api.get("/learning/next"),
+          ]);
 
         if (overviewRes.status === "fulfilled") {
           setOverview(overviewRes.value.data?.data?.overview);
@@ -48,6 +50,12 @@ export const DashboardPage = () => {
         if (trendRes.status === "fulfilled") {
           setActivityTrend(trendRes.value.data?.data?.activity || []);
         }
+        if (
+          nextActionRes.status === "fulfilled" &&
+          nextActionRes.value.data?.data?.nextAction
+        ) {
+          setAdaptiveAction(nextActionRes.value.data.data.nextAction);
+        }
       } catch (err) {
         console.error("Failed to load dashboard data", err);
       } finally {
@@ -59,11 +67,22 @@ export const DashboardPage = () => {
   }, []);
 
   const careerGoal = profile?.careerGoal || "Full Stack Developer";
-  const nextAction = guidance?.nextActions?.[0] || {
-    title: "Continue your current roadmap topics to advance readiness",
-    link: "/roadmap",
-    actionText: "Open Roadmap",
-  };
+  const nextAction = adaptiveAction
+    ? {
+        title: adaptiveAction.title,
+        reason: adaptiveAction.reason,
+        link: adaptiveAction.targetUrl || "/roadmap",
+        actionText:
+          adaptiveAction.actionType === "spaced_review"
+            ? "Start Review"
+            : "Continue Learning",
+        estimatedMinutes: adaptiveAction.estimatedMinutes,
+      }
+    : guidance?.nextActions?.[0] || {
+        title: "Continue your current roadmap topics to advance readiness",
+        link: "/roadmap",
+        actionText: "Open Roadmap",
+      };
 
   if (loading) {
     return (
@@ -137,9 +156,16 @@ export const DashboardPage = () => {
               {nextAction.title}
             </h2>
             <p className="text-sm text-slate-300 mt-2 leading-relaxed">
-              {guidance?.insight ||
+              {nextAction.reason ||
+                guidance?.insight ||
                 "Calibrated from your current skill proficiencies, algorithmic practice cadence, and roadmap milestones."}
             </p>
+            {nextAction.estimatedMinutes && (
+              <span className="inline-flex items-center gap-1.5 text-xs text-indigo-300/80 mt-2 font-mono">
+                <Clock className="w-3.5 h-3.5" />
+                <span>Estimated effort: {nextAction.estimatedMinutes} mins</span>
+              </span>
+            )}
           </div>
 
           <Link

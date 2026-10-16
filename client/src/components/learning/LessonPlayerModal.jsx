@@ -298,6 +298,47 @@ export const LessonPlayerModal = ({
                     </div>
                   )}
 
+                  {/* Learning Objectives */}
+                  {lesson?.learningObjectives?.length > 0 && (
+                    <div className="p-5 rounded-2xl bg-[#101728] border border-indigo-500/30 space-y-2.5">
+                      <div className="flex items-center gap-2 text-indigo-400 text-xs font-bold uppercase tracking-wider">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        <span>Measurable Learning Objectives</span>
+                      </div>
+                      <ul className="space-y-1.5 text-xs text-slate-300">
+                        {lesson.learningObjectives.map((obj, oIdx) => (
+                          <li key={oIdx} className="flex items-start gap-2">
+                            <span className="text-emerald-400 font-bold shrink-0">✓</span>
+                            <span>{obj}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Common Misconceptions Callout */}
+                  {lesson?.misconceptions?.length > 0 && (
+                    <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3">
+                      <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider">
+                        <AlertCircle className="w-4 h-4 text-amber-400" />
+                        <span>Common Developer Misconceptions & Gotchas</span>
+                      </div>
+                      <div className="grid grid-cols-1 gap-2.5">
+                        {lesson.misconceptions.map((m, mIdx) => (
+                          <div
+                            key={mIdx}
+                            className="p-3 rounded-xl bg-[#0e1628] border border-amber-500/20 text-xs space-y-1"
+                          >
+                            <p className="font-semibold text-rose-300">
+                              ✕ Misconception: "{m.misconception}"
+                            </p>
+                            <p className="text-slate-300">→ Reality: {m.explanation}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Formatted Text Content */}
                   <div className="p-6 sm:p-8 rounded-2xl bg-[#101728] border border-slate-800 shadow-xl space-y-4">
                     <h3 className="text-xl font-bold text-white border-b border-slate-800 pb-3">
