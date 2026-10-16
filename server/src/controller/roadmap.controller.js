@@ -84,7 +84,10 @@ export const getMyRoadmap = async (req, res) => {
 
 export const updateRoadmapProgress = async (req, res) => {
   try {
-    const { progressPercent } = req.body;
+    const progressPercent =
+      req.body.progressPercent !== undefined
+        ? req.body.progressPercent
+        : req.body.completionPercent;
     const userRoadmap = await updateRoadmapProgressService(
       req.user.userId,
       req.params.itemKey,

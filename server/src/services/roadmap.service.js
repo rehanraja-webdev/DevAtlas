@@ -246,7 +246,9 @@ export const updateRoadmapProgressService = async (
     );
 
     if (!dependenciesCompleted) {
-      throw new Error("Complete the required prerequisite topics first");
+      const err = new Error("Complete the required prerequisite topics first. Milestone is locked.");
+      err.statusCode = 403;
+      throw err;
     }
   }
 
