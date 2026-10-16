@@ -43,6 +43,23 @@ const skillSchema = new mongoose.Schema(
       max: 100,
       default: 0,
     },
+
+    source: {
+      type: String,
+      enum: ["self_reported", "verified"],
+      default: "self_reported",
+    },
+
+    verifiedMasteryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SkillMastery",
+      default: null,
+    },
+
+    lastVerifiedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -50,6 +67,7 @@ const skillSchema = new mongoose.Schema(
 );
 
 skillSchema.index({ user: 1, name: 1 }, { unique: true });
+skillSchema.index({ user: 1, source: 1 });
 
 const Skill = mongoose.model("Skill", skillSchema);
 

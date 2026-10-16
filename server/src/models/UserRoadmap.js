@@ -11,49 +11,58 @@ const progressSchema = new mongoose.Schema(
       enum: ["locked", "not-started", "in-progress", "completed"],
       default: "not-started",
     },
+    masteryState: {
+      type: String,
+      enum: ["not_started", "in_progress", "practised", "demonstrated", "retained"],
+      default: "not_started",
+    },
+    progressSource: {
+      type: String,
+      enum: ["verified_evidence", "legacy_self_reported"],
+      default: "verified_evidence",
+    },
     progressPercent: {
       type: Number,
       min: 0,
       max: 100,
       default: 0,
     },
-
     startedAt: {
       type: Date,
       default: null,
     },
-
     completedAt: {
       type: Date,
       default: null,
     },
-
     quizScore: {
       type: Number,
       min: 0,
       max: 100,
       default: null,
     },
-
     exercisePassed: {
       type: Boolean,
       default: false,
     },
-
     verifiedMastery: {
       type: Boolean,
       default: false,
     },
-
     lessonViewed: {
       type: Boolean,
       default: false,
     },
-
     lastAttemptAt: {
       type: Date,
       default: null,
     },
+    evidenceIds: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "SkillEvidence",
+      },
+    ],
   },
   {
     _id: false,
@@ -72,12 +81,10 @@ const userRoadmapSchema = new mongoose.Schema(
       ref: "Roadmap",
       required: true,
     },
-
     progress: {
       type: [progressSchema],
       default: [],
     },
-
     overallProgress: {
       type: Number,
       min: 0,
